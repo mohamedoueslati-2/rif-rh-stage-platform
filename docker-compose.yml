@@ -1,0 +1,43 @@
+# services:
+#   postgres:
+#     image: postgres:16
+#     container_name: rif-rh-postgres
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: ${POSTGRES_DB:-rif_rh_stage_db}
+#       POSTGRES_USER: ${POSTGRES_USER:-postgres}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+#     networks:
+#       - rif-rh-network
+#
+#   # backend:
+#   #   build: ./backend
+#   #   container_name: rif-rh-backend
+#   #   ports:
+#   #     - "8080:8080"
+#   #   depends_on:
+#   #     - postgres
+#   #   networks:
+#   #     - rif-rh-network
+#
+#   # frontend:
+#   #   build: ./frontend
+#   #   container_name: rif-rh-frontend
+#   #   ports:
+#   #     - "4200:80"
+#   #   depends_on:
+#   #     - backend
+#   #   networks:
+#   #     - rif-rh-network
+#
+# volumes:
+#   postgres_data:
+#
+# networks:
+#   rif-rh-network:
+#     driver: bridge

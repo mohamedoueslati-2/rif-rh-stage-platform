@@ -1,0 +1,29 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Angular / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.cache/
+
+# Spring Boot / Java / Maven
+backend/target/
+backend/hs_err_pid*
+backend/replay_pid*
+
+# Docker local data
+docker-data/
