@@ -58,10 +58,36 @@ frontend/**/vite/deps/
 # =====================
 # Spring Boot / Java / Maven
 # =====================
-backend/target/
-backend/hs_err_pid*
-backend/replay_pid*
-backend/.mvn/wrapper/maven-wrapper.jar
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.factorypath
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+
 
 # =====================
 # Docker local data
