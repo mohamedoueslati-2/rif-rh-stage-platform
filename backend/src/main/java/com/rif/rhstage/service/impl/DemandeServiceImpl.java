@@ -18,7 +18,9 @@ import com.rif.rhstage.repository.DemandeRepository;
 import com.rif.rhstage.repository.OffreStageRepository;
 import com.rif.rhstage.repository.RhRepository;
 import com.rif.rhstage.service.DemandeService;
+import com.rif.rhstage.service.NotificationCandidatService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ import java.time.Year;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DemandeServiceImpl implements DemandeService {
@@ -36,6 +39,7 @@ public class DemandeServiceImpl implements DemandeService {
     private final OffreStageRepository offreStageRepository;
     private final RhRepository rhRepository;
     private final DemandeMapper demandeMapper;
+    private final NotificationCandidatService notificationCandidatService;
 
     // Candidat : déposer une demande pour une offre
     @Override
@@ -113,12 +117,26 @@ public class DemandeServiceImpl implements DemandeService {
         Demande demande = findDemandeById(id);
         RH rhTraitant = findRhById(rhId);
 
-        validateStatutTransition(demande.getStatut(), request.statut());
+        StatutDemande ancienStatut = demande.getStatut();
+
+        validateStatutTransition(ancienStatut, request.statut());
 
         demande.setStatut(request.statut());
         demande.setRhTraitant(rhTraitant);
 
         Demande savedDemande = demandeRepository.save(demande);
+
+        if (ancienStatut != savedDemande.getStatut()) {
+            try {
+                notificationCandidatService.notifierChangementStatut(savedDemande);
+            } catch (Exception e) {
+                log.warn(
+                        "Email de notification non envoyé pour la demande {}",
+                        savedDemande.getReferenceDemande(),
+                        e
+                );
+            }
+        }
 
         return demandeMapper.toResponse(savedDemande);
     }

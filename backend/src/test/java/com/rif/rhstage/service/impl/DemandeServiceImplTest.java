@@ -13,6 +13,7 @@ import com.rif.rhstage.repository.CandidatRepository;
 import com.rif.rhstage.repository.DemandeRepository;
 import com.rif.rhstage.repository.OffreStageRepository;
 import com.rif.rhstage.repository.RhRepository;
+import com.rif.rhstage.service.NotificationCandidatService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -46,6 +47,9 @@ class DemandeServiceImplTest {
 
     @Mock
     private DemandeMapper demandeMapper;
+
+    @Mock
+    private NotificationCandidatService notificationCandidatService;
 
     @InjectMocks
     private DemandeServiceImpl demandeService;
@@ -358,6 +362,33 @@ class DemandeServiceImplTest {
         assertEquals(StatutDemande.EN_ETUDE, result.statut());
 
         verify(demandeRepository).save(demande);
+        verify(notificationCandidatService).notifierChangementStatut(savedDemande);
+    }
+
+    @Test
+    void updateStatut_shouldSucceedWhenEmailNotificationFails() {
+        UUID demandeId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+        Demande demande = new Demande();
+        demande.setStatut(StatutDemande.SOUMISE);
+        DemandeResponse response = mock(DemandeResponse.class);
+
+        when(demandeRepository.findById(demandeId)).thenReturn(Optional.of(demande));
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(new RH()));
+        when(demandeRepository.save(demande)).thenReturn(demande);
+        when(demandeMapper.toResponse(demande)).thenReturn(response);
+        doThrow(new RuntimeException("SMTP indisponible"))
+                .when(notificationCandidatService).notifierChangementStatut(demande);
+
+        DemandeResponse result = assertDoesNotThrow(() -> demandeService.updateStatut(
+                demandeId,
+                rhId,
+                new UpdateStatutDemandeRequest(StatutDemande.EN_ETUDE)
+        ));
+
+        assertSame(response, result);
+        assertEquals(StatutDemande.EN_ETUDE, demande.getStatut());
+        verify(notificationCandidatService).notifierChangementStatut(demande);
     }
 
     @Test
