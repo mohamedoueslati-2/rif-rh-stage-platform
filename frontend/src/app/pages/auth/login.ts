@@ -11,6 +11,7 @@ import { RippleModule } from 'primeng/ripple';
 
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { AppConfigurator } from '../../layout/component/app.configurator';
+import { AuthService } from './services/auth.service';
 
 @Component({
     selector: 'app-login',
@@ -21,7 +22,7 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
 
         <div class="auth-page">
             <header class="auth-header">
-                <a routerLink="/auth/login" class="auth-logo">
+                <a routerLink="/" class="auth-logo">
                     <img
                         [src]="layoutService.isDarkTheme() ? '/images/rif_logo_dark_topbar.png' : '/images/rif_logo_light_topbar.png'"
                         alt="RIF Logo"
@@ -29,14 +30,23 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                 </a>
 
                 <nav class="auth-nav">
-                    <a routerLink="/auth/login">Accueil</a>
+                    <a routerLink="/">Accueil</a>
                     <a routerLink="/offres">Offres</a>
                     <a routerLink="/contact">Contact</a>
                 </nav>
 
                 <div class="auth-actions">
-                    <p-button label="Connexion" routerLink="/auth/login" [outlined]="true" />
-                    <p-button label="Créer compte" routerLink="/auth/register" />
+                    <button
+                        type="button"
+                        class="theme-toggle"
+                        (click)="toggleDarkMode()"
+                        [attr.aria-label]="layoutService.isDarkTheme() ? 'Activer le mode clair' : 'Activer le mode sombre'"
+                        [title]="layoutService.isDarkTheme() ? 'Mode clair' : 'Mode sombre'"
+                    >
+                        <i class="pi" [ngClass]="layoutService.isDarkTheme() ? 'pi-sun' : 'pi-moon'"></i>
+                    </button>
+                    <p-button class="auth-account-action" label="Connexion" routerLink="/auth/login" [outlined]="true" />
+                    <p-button class="auth-account-action" label="Créer compte" routerLink="/auth/register" />
                 </div>
             </header>
 
@@ -115,7 +125,11 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                         <a class="text-primary font-medium cursor-pointer">Mot de passe oublié ?</a>
                     </div>
 
-                    <p-button label="Se connecter" styleClass="w-full auth-submit" routerLink="/" />
+                    @if (errorMessage) {
+                        <p class="auth-error" role="alert">{{ errorMessage }}</p>
+                    }
+
+                    <p-button label="Se connecter" styleClass="w-full auth-submit" (onClick)="login()" [loading]="loading" [disabled]="!email || !password" />
 
                     <div class="switch-auth">
                         <span>Vous n’avez pas de compte ?</span>
@@ -341,6 +355,31 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                 font-weight: 700;
             }
 
+            .theme-toggle {
+                width: 42px;
+                height: 42px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid var(--surface-border);
+                border-radius: 50%;
+                background: var(--surface-card);
+                color: var(--text-color);
+                cursor: pointer;
+                transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            }
+
+            .theme-toggle:hover {
+                color: var(--primary-color);
+                border-color: var(--primary-color);
+                background: var(--surface-hover);
+            }
+
+            .auth-error {
+                color: var(--p-red-500);
+                margin: -0.75rem 0 1rem;
+            }
+
             .switch-auth {
                 margin-top: 1.5rem;
                 text-align: center;
@@ -378,7 +417,7 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                     padding: 0 1rem;
                 }
 
-                .auth-actions {
+                .auth-account-action {
                     display: none;
                 }
 
@@ -393,8 +432,31 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
 })
 export class Login {
     layoutService = inject(LayoutService);
+    private readonly authService = inject(AuthService);
 
     email = '';
     password = '';
     checked = false;
+    loading = false;
+    errorMessage = '';
+
+    toggleDarkMode(): void {
+        this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+    }
+
+    login(): void {
+        if (!this.email || !this.password || this.loading) return;
+
+        this.loading = true;
+        this.errorMessage = '';
+        this.authService.login({ email: this.email.trim(), motDePasse: this.password }).subscribe({
+            next: () => void this.authService.redirectByRole(),
+            error: (error) => {
+                this.errorMessage = error.status === 0 || error.status >= 500
+                    ? 'Le serveur est indisponible. Vérifiez que le backend est démarré.'
+                    : 'Email ou mot de passe incorrect.';
+                this.loading = false;
+            }
+        });
+    }
 }

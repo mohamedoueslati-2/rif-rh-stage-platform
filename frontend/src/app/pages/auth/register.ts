@@ -10,6 +10,7 @@ import { RippleModule } from 'primeng/ripple';
 
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { AppConfigurator } from '../../layout/component/app.configurator';
+import { AuthService } from './services/auth.service';
 
 @Component({
     selector: 'app-register',
@@ -20,7 +21,7 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
 
         <div class="auth-page">
             <header class="auth-header">
-                <a routerLink="/auth/login" class="auth-logo">
+                <a routerLink="/" class="auth-logo">
                     <img
                         [src]="layoutService.isDarkTheme() ? '/images/rif_logo_dark_topbar.png' : '/images/rif_logo_light_topbar.png'"
                         alt="RIF Logo"
@@ -28,14 +29,23 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                 </a>
 
                 <nav class="auth-nav">
-                    <a routerLink="/auth/login">Accueil</a>
+                    <a routerLink="/">Accueil</a>
                     <a routerLink="/offres">Offres</a>
                     <a routerLink="/contact">Contact</a>
                 </nav>
 
                 <div class="auth-actions">
-                    <p-button label="Connexion" routerLink="/auth/login" [outlined]="true" />
-                    <p-button label="Créer compte" routerLink="/auth/register" />
+                    <button
+                        type="button"
+                        class="theme-toggle"
+                        (click)="toggleDarkMode()"
+                        [attr.aria-label]="layoutService.isDarkTheme() ? 'Activer le mode clair' : 'Activer le mode sombre'"
+                        [title]="layoutService.isDarkTheme() ? 'Mode clair' : 'Mode sombre'"
+                    >
+                        <i class="pi" [ngClass]="layoutService.isDarkTheme() ? 'pi-sun' : 'pi-moon'"></i>
+                    </button>
+                    <p-button class="auth-account-action" label="Connexion" routerLink="/auth/login" [outlined]="true" />
+                    <p-button class="auth-account-action" label="Créer compte" routerLink="/auth/register" />
                 </div>
             </header>
 
@@ -132,8 +142,12 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                         </div>
                     </div>
 
+                    @if (errorMessage) {
+                        <p class="auth-error" role="alert">{{ errorMessage }}</p>
+                    }
+
                     <div class="register-actions">
-                        <p-button label="Créer mon compte" styleClass="w-full auth-submit" routerLink="/auth/login" />
+                        <p-button label="Créer mon compte" styleClass="w-full auth-submit" (onClick)="register()" [loading]="loading" [disabled]="!canSubmit" />
                         <p-button label="Déjà un compte ? Connexion" styleClass="w-full auth-submit" routerLink="/auth/login" [outlined]="true" />
                     </div>
 
@@ -349,6 +363,31 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                 margin-top: 2rem;
             }
 
+            .theme-toggle {
+                width: 42px;
+                height: 42px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid var(--surface-border);
+                border-radius: 50%;
+                background: var(--surface-card);
+                color: var(--text-color);
+                cursor: pointer;
+                transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            }
+
+            .theme-toggle:hover {
+                color: var(--primary-color);
+                border-color: var(--primary-color);
+                background: var(--surface-hover);
+            }
+
+            .auth-error {
+                color: var(--p-red-500);
+                margin: 1rem 0 0;
+            }
+
             .auth-submit {
                 height: 52px;
                 font-weight: 700;
@@ -382,7 +421,7 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
                     padding: 0 1rem;
                 }
 
-                .auth-actions {
+                .auth-account-action {
                     display: none;
                 }
 
@@ -402,6 +441,7 @@ import { AppConfigurator } from '../../layout/component/app.configurator';
 })
 export class Register {
     layoutService = inject(LayoutService);
+    private readonly authService = inject(AuthService);
 
     nom = '';
     prenom = '';
@@ -410,4 +450,40 @@ export class Register {
     specialite = '';
     niveauEtude = '';
     password = '';
+    loading = false;
+    errorMessage = '';
+
+    toggleDarkMode(): void {
+        this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+    }
+
+    get canSubmit(): boolean {
+        return !!this.nom.trim() && !!this.prenom.trim() && !!this.email.trim() && this.password.length >= 6 && !this.loading;
+    }
+
+    register(): void {
+        if (!this.canSubmit) return;
+
+        this.loading = true;
+        this.errorMessage = '';
+        this.authService
+            .register({
+                nom: this.nom.trim(),
+                prenom: this.prenom.trim(),
+                email: this.email.trim(),
+                motDePasse: this.password,
+                telephone: this.telephone.trim(),
+                specialite: this.specialite.trim(),
+                niveauEtude: this.niveauEtude.trim()
+            })
+            .subscribe({
+                next: () => void this.authService.logout(),
+                error: (error) => {
+                    this.errorMessage = error.status === 0 || error.status >= 500
+                        ? 'Le serveur est indisponible. Vérifiez que le backend est démarré.'
+                        : 'Impossible de créer le compte. Vérifiez les informations saisies.';
+                    this.loading = false;
+                }
+            });
+    }
 }

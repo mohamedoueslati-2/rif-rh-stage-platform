@@ -44,7 +44,7 @@ export class LayoutService {
 
     isDarkTheme = computed(() => this.layoutConfig().darkTheme);
 
-    getPrimary = computed(() => 'indigo');
+    getPrimary = computed(() => this.layoutConfig().primary);
 
     getSurface = computed(() => this.layoutConfig().surface);
 

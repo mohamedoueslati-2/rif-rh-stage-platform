@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
+import { AuthService } from '@/app/pages/auth/services/auth.service';
 
 @Component({
     selector: 'app-menu',
@@ -19,14 +20,24 @@ import { AppMenuitem } from './app.menuitem';
     </ul> `,
 })
 export class AppMenu {
+    private readonly authService = inject(AuthService);
     model: MenuItem[] = [];
 
     ngOnInit() {
+        const role = this.authService.getRole();
+
         this.model = [
             {
                 label: 'Home',
-                items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
+                items: [
+                    {
+                        label: role === 'CANDIDAT' ? 'Dashboard Candidat' : 'Dashboard',
+                        icon: 'pi pi-fw pi-home',
+                        routerLink: [role === 'CANDIDAT' ? '/candidat/dashboard' : '/dashboard']
+                    }
+                ]
             },
+            this.businessMenu(role),
             {
                 label: 'UI Components',
                 items: [
@@ -164,5 +175,29 @@ export class AppMenu {
                 ]
             }
         ];
+    }
+
+    private businessMenu(role: 'RH' | 'CANDIDAT' | null): MenuItem {
+        if (role === 'CANDIDAT') {
+            return {
+                label: 'Espace Candidat',
+                items: [
+                    { label: 'Offres Stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/candidat/offres'] },
+                    { label: 'Mes Demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/candidat/mes-demandes'] },
+                    { label: 'Profile', icon: 'pi pi-fw pi-user', routerLink: ['/candidat/profile'] },
+                    { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
+                ]
+            };
+        }
+
+        return {
+            label: 'Gestion RH',
+            items: [
+                { label: 'Offres Stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/rh/offres'] },
+                { label: 'Demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/rh/demandes'] },
+                { label: 'Profile', icon: 'pi pi-fw pi-user', routerLink: ['/rh/profile'] },
+                { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
+            ]
+        };
     }
 }
