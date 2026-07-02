@@ -1,19 +1,24 @@
-# Dockerfile Frontend
-# Ce fichier est un placeholder pour le projet Angular.
-# Le contenu réel sera ajouté après l'initialisation du frontend.
-#
-# Architecture cible :
-# 1. Builder l'application Angular avec Node.js
-# 2. Servir les fichiers générés avec Nginx
-#
-# Exemple futur :
-# FROM node:20-alpine AS build
-# WORKDIR /app
-# COPY package*.json ./
-# RUN npm install
-# COPY . .
-# RUN npm run build
-#
-# FROM nginx:alpine
-# COPY --from=build /app/dist/<nom-projet>/browser /usr/share/nginx/html
-# EXPOSE 80
+# Étape 1 : compilation Angular.
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+# npm ci garantit une installation reproductible à partir de package-lock.json.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Étape 2 : publication des fichiers statiques avec Nginx.
+FROM nginx:1.27-alpine
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist/sakai-ng/browser /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=5 \
+    CMD wget -qO- http://127.0.0.1/health >/dev/null 2>&1 || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

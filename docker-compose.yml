@@ -1,43 +1,78 @@
-# services:
-#   postgres:
-#     image: postgres:16
-#     container_name: rif-rh-postgres
-#     restart: unless-stopped
-#     environment:
-#       POSTGRES_DB: ${POSTGRES_DB:-rif_rh_stage_db}
-#       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-#     ports:
-#       - "5432:5432"
-#     volumes:
-#       - postgres_data:/var/lib/postgresql/data
-#       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-#     networks:
-#       - rif-rh-network
-#
-#   # backend:
-#   #   build: ./backend
-#   #   container_name: rif-rh-backend
-#   #   ports:
-#   #     - "8080:8080"
-#   #   depends_on:
-#   #     - postgres
-#   #   networks:
-#   #     - rif-rh-network
-#
-#   # frontend:
-#   #   build: ./frontend
-#   #   container_name: rif-rh-frontend
-#   #   ports:
-#   #     - "4200:80"
-#   #   depends_on:
-#   #     - backend
-#   #   networks:
-#   #     - rif-rh-network
-#
-# volumes:
-#   postgres_data:
-#
-# networks:
-#   rif-rh-network:
-#     driver: bridge
+name: rif-rh-stage-platform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-rif_rh_stage_db}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit être défini dans .env}
+      TZ: ${APP_TIMEZONE:-Africa/Tunis}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-rif_rh_stage_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rif-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Dans Docker, PostgreSQL est joignable par le nom du service "postgres".
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-rif_rh_stage_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit être défini dans .env}
+      SERVER_PORT: 8090
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
+    ports:
+      - "${SERVER_PORT:-8090}:8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8090/api/offres || exit 1"]
+      interval: 20s
+      timeout: 5s
+      start_period: 35s
+      retries: 5
+    networks:
+      - rif-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    networks:
+      - rif-network
+
+volumes:
+  postgres_data:
+
+networks:
+  rif-network:
+    driver: bridge

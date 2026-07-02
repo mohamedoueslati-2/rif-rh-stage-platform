@@ -1,78 +1,54 @@
 # Configuration du backend Spring Boot
 
-## 1. Prérequis
+## Prérequis locaux
 
 - JDK 21 ;
-- PostgreSQL accessible ;
-- un serveur SMTP si les notifications email doivent être réellement envoyées ;
-- aucune installation globale de Maven nécessaire grâce à `mvnw.cmd`/`mvnw`.
+- PostgreSQL ;
+- un serveur SMTP pour les notifications réelles ;
+- Maven n'est pas requis globalement grâce à `mvnw` et `mvnw.cmd`.
 
-## 2. Variables d’environnement
+## Variables d'environnement
 
-`application.properties` attend les variables suivantes :
+Le modèle complet et commenté se trouve dans `.env.example` à la racine.
 
-| Variable | Obligatoire | Exemple local | Rôle |
-|---|---|---|---|
-| `SERVER_PORT` | oui | `8090` | Port HTTP |
-| `DB_URL` | oui | `jdbc:postgresql://localhost:5432/rif_rh_stage_db` | URL JDBC |
-| `DB_USERNAME` | oui | `postgres` | Utilisateur PostgreSQL |
-| `DB_PASSWORD` | oui | `change_me` | Mot de passe PostgreSQL |
-| `JPA_DDL_AUTO` | oui | `update` | Stratégie Hibernate DDL |
-| `JPA_SHOW_SQL` | oui | `true` | Affichage SQL |
-| `APP_TIMEZONE` | oui | `Africa/Tunis` | Fuseau Jackson |
-| `JWT_SECRET` | oui | secret aléatoire d’au moins 32 octets | Signature HS256 |
-| `JWT_EXPIRATION_MS` | oui | `86400000` | Durée du token en millisecondes |
-| `CORS_ALLOWED_ORIGINS` | oui | `http://localhost:4200` | Origines CORS, séparées par des virgules |
-| `SEED_RH_EMAIL` | oui | `rh@example.com` | Email du RH initial |
-| `SEED_RH_PASSWORD` | oui | valeur secrète | Mot de passe initial du RH |
-| `MAIL_HOST` | non | `smtp.gmail.com` | Hôte SMTP, valeur par défaut identique |
-| `MAIL_PORT` | non | `587` | Port SMTP, valeur par défaut identique |
-| `MAIL_USERNAME` | non au démarrage | `sender@example.com` | Compte SMTP |
-| `MAIL_PASSWORD` | non au démarrage | mot de passe d’application | Secret SMTP |
+| Variable | Exemple | Rôle |
+|---|---|---|
+| `SERVER_PORT` | `8090` | Port HTTP du backend |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/rif_rh_stage_db` | URL JDBC locale |
+| `DB_NAME` | `rif_rh_stage_db` | Nom utilisé par Docker Compose |
+| `DB_PORT` | `5432` | Port PostgreSQL exposé par Docker |
+| `DB_USERNAME` | `postgres` | Utilisateur PostgreSQL |
+| `DB_PASSWORD` | valeur secrète | Mot de passe PostgreSQL |
+| `JPA_DDL_AUTO` | `update` | Stratégie Hibernate DDL |
+| `JPA_SHOW_SQL` | `true` | Affichage des requêtes SQL |
+| `APP_TIMEZONE` | `Africa/Tunis` | Fuseau horaire applicatif |
+| `JWT_SECRET` | secret aléatoire long | Signature des JWT |
+| `JWT_EXPIRATION_MS` | `86400000` | Durée du token en millisecondes |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` | Origines autorisées, séparées par des virgules |
+| `SEED_RH_EMAIL` | `rh@example.com` | Email du compte RH initial |
+| `SEED_RH_PASSWORD` | valeur secrète | Mot de passe RH initial |
+| `MAIL_HOST` | `smtp.gmail.com` | Hôte SMTP |
+| `MAIL_PORT` | `587` | Port SMTP STARTTLS |
+| `MAIL_USERNAME` | `sender@example.com` | Compte SMTP |
+| `MAIL_PASSWORD` | mot de passe d'application | Secret SMTP |
 
-`MAIL_USERNAME` et `MAIL_PASSWORD` possèdent une valeur vide par défaut, mais l’envoi échouera si le fournisseur SMTP exige une authentification. Cet échec ne bloque pas les changements de statut.
+## Chargement de `.env`
 
-## 3. Fichier `.env`
-
-Le dépôt contient `.env.example` comme aide de configuration. Le backend lit les variables du processus via Spring. La simple présence d’un fichier `.env` ne garantit pas son chargement automatique : il faut les injecter avec l’IDE, le terminal, Docker ou un mécanisme de lancement adapté.
-
-Ne jamais committer un vrai `JWT_SECRET`, un mot de passe PostgreSQL, le mot de passe RH ou le mot de passe d’application SMTP.
-
-Exemple PowerShell minimal avant lancement :
+Créer le fichier depuis la racine :
 
 ```powershell
-$env:SERVER_PORT='8090'
-$env:DB_URL='jdbc:postgresql://localhost:5432/rif_rh_stage_db'
-$env:DB_USERNAME='postgres'
-$env:DB_PASSWORD='change_me'
-$env:JPA_DDL_AUTO='update'
-$env:JPA_SHOW_SQL='true'
-$env:APP_TIMEZONE='Africa/Tunis'
-$env:JWT_SECRET='remplacer-par-un-secret-long-et-aleatoire'
-$env:JWT_EXPIRATION_MS='86400000'
-$env:CORS_ALLOWED_ORIGINS='http://localhost:4200'
-$env:SEED_RH_EMAIL='rh@example.com'
-$env:SEED_RH_PASSWORD='remplacer-ce-mot-de-passe'
-$env:MAIL_HOST='smtp.gmail.com'
-$env:MAIL_PORT='587'
-$env:MAIL_USERNAME='sender@example.com'
-$env:MAIL_PASSWORD='mot-de-passe-application'
+Copy-Item .env.example .env
 ```
 
-## 4. Configuration SMTP
+Lorsque Spring Boot est lancé depuis `backend`, `RhStageBackendApplication` charge automatiquement `../.env`. Docker Compose transmet également ce fichier au conteneur avec `env_file`.
 
-Le backend configure :
+Dans Docker, `DB_URL` est remplacée par une URL utilisant le service `postgres`. En local, elle continue d'utiliser `localhost`.
 
-- encodage UTF-8 ;
-- authentification SMTP ;
-- STARTTLS ;
-- port 587 par défaut.
+Ne jamais committer un vrai `JWT_SECRET`, un mot de passe PostgreSQL, le mot de passe RH ou le secret SMTP.
 
-Pour Gmail, `MAIL_PASSWORD` doit être un mot de passe d’application et non le mot de passe principal du compte. Un autre fournisseur SMTP peut être utilisé en changeant l’hôte, le port et les identifiants.
+## Lancement local
 
-## 5. Lancement
-
-Depuis le dossier `backend` sous Windows :
+Depuis `backend` sous Windows :
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -84,30 +60,39 @@ Sous Linux ou macOS :
 ./mvnw spring-boot:run
 ```
 
-Compilation sans démarrage :
+Compilation et tests :
 
 ```powershell
 .\mvnw.cmd clean package
-```
-
-Tests :
-
-```powershell
 .\mvnw.cmd test
 ```
 
-## 6. Initialisation du RH
+## Configuration SMTP
 
-Au démarrage, `DataSeeder` recherche `SEED_RH_EMAIL` dans toutes les personnes. Si cet email n’existe pas, il crée un RH avec :
+Le backend utilise UTF-8, l'authentification SMTP et STARTTLS. Pour Gmail, `MAIL_PASSWORD` doit être un mot de passe d'application, pas le mot de passe principal.
 
-- nom `Oueslati` ;
-- prénom `Mohamed` ;
-- nom d’affichage `RH Admin` ;
-- email et contact professionnel égaux à `SEED_RH_EMAIL` ;
-- mot de passe BCrypt dérivé de `SEED_RH_PASSWORD`.
+Si SMTP échoue, la mise à jour du statut reste enregistrée et un avertissement est écrit dans les logs.
 
-Changer ultérieurement les variables ne modifie pas automatiquement un compte déjà créé.
+## Initialisation du RH
 
-## 7. CORS
+Au démarrage, le seeder recherche `SEED_RH_EMAIL`. Si cet email n'existe pas, il crée le premier compte RH avec le mot de passe chiffré issu de `SEED_RH_PASSWORD`.
 
-`CORS_ALLOWED_ORIGINS` accepte plusieurs origines séparées par des virgules. Les méthodes autorisées sont `GET`, `POST`, `PUT`, `PATCH`, `DELETE` et `OPTIONS`. Les en-têtes autorisés sont `Authorization` et `Content-Type`, avec credentials activés.
+Modifier ces variables ne change pas automatiquement un compte déjà présent en base.
+
+## Conservation des données
+
+Utiliser :
+
+```env
+JPA_DDL_AUTO=update
+```
+
+Ne pas utiliser `create-drop` avec des données importantes : les tables seraient supprimées à l'arrêt de l'application.
+
+## CORS
+
+`CORS_ALLOWED_ORIGINS` accepte plusieurs origines séparées par des virgules. Pour la configuration Docker par défaut :
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:4200,http://localhost:5173
+```
