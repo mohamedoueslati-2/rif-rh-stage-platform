@@ -17,7 +17,9 @@ public class Demande {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, unique = true, length = 50)
+    private String referenceDemande;
+
     private LocalDateTime dateDemande;
 
     @Column(length = 500)
@@ -27,7 +29,6 @@ public class Demande {
     private String cvUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 40)
     private StatutDemande statut;
 
     private Double noteTestTechnique;
@@ -35,7 +36,6 @@ public class Demande {
     @Column(columnDefinition = "TEXT")
     private String commentaireRh;
 
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -51,7 +51,7 @@ public class Demande {
     private RH rhTraitant;
 
     @PrePersist
-    protected void onCreate() {
+    void onCreate() {
         this.dateDemande = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
 
@@ -61,7 +61,7 @@ public class Demande {
     }
 
     @PreUpdate
-    protected void onUpdate() {
+    void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 }

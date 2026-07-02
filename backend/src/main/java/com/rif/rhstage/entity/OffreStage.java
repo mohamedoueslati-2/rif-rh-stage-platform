@@ -18,28 +18,25 @@ public class OffreStage {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 150)
+    @Column(nullable = false, unique = true, length = 50)
+    private String referenceOffre;
+
+    @Column(nullable = false)
     private String titre;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, length = 100)
     private String domaine;
 
-    @Column(nullable = false, length = 120)
     private String lieu;
 
-    @Column(nullable = false, length = 50)
     private String duree;
 
-    @Column(nullable = false)
     private LocalDate dateDebut;
 
-    @Column(nullable = false)
     private LocalDate dateExpiration;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -47,7 +44,7 @@ public class OffreStage {
     private RH rhCreateur;
 
     @PrePersist
-    protected void onCreate() {
+    void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 }
