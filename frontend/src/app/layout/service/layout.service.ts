@@ -23,7 +23,7 @@ interface LayoutState {
 export class LayoutService {
     layoutConfig = signal<LayoutConfig>({
         preset: 'Aura',
-        primary: 'emerald',
+        primary: 'indigo',
         surface: null,
         darkTheme: false,
         menuMode: 'static'
@@ -38,7 +38,7 @@ export class LayoutService {
         activePath: null
     });
 
-    theme = computed(() => (this.layoutConfig().darkTheme ? 'light' : 'dark'));
+    theme = computed(() => (this.layoutConfig().darkTheme ? 'dark' : 'light'));
 
     isSidebarActive = computed(() => this.layoutState().overlayMenuActive || this.layoutState().mobileMenuActive);
 
@@ -85,6 +85,7 @@ export class LayoutService {
 
     toggleDarkMode(config?: LayoutConfig): void {
         const _config = config || this.layoutConfig();
+
         if (_config.darkTheme) {
             document.documentElement.classList.add('app-dark');
         } else {
@@ -93,23 +94,31 @@ export class LayoutService {
     }
 
     onMenuToggle() {
-        if (this.isOverlay()) {
-            this.layoutState.update((prev) => ({ ...prev, overlayMenuActive: !this.layoutState().overlayMenuActive }));
-        }
-
         if (this.isDesktop()) {
-            this.layoutState.update((prev) => ({ ...prev, staticMenuDesktopInactive: !this.layoutState().staticMenuDesktopInactive }));
+            this.layoutState.update((prev) => ({
+                ...prev,
+                staticMenuDesktopInactive: !this.layoutState().staticMenuDesktopInactive
+            }));
         } else {
-            this.layoutState.update((prev) => ({ ...prev, mobileMenuActive: !this.layoutState().mobileMenuActive }));
+            this.layoutState.update((prev) => ({
+                ...prev,
+                mobileMenuActive: !this.layoutState().mobileMenuActive
+            }));
         }
     }
 
     showConfigSidebar() {
-        this.layoutState.update((prev) => ({ ...prev, configSidebarVisible: true }));
+        this.layoutState.update((prev) => ({
+            ...prev,
+            configSidebarVisible: true
+        }));
     }
 
     hideConfigSidebar() {
-        this.layoutState.update((prev) => ({ ...prev, configSidebarVisible: false }));
+        this.layoutState.update((prev) => ({
+            ...prev,
+            configSidebarVisible: false
+        }));
     }
 
     isDesktop() {
