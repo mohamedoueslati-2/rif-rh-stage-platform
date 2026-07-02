@@ -55,8 +55,8 @@ class OffreStageServiceImplTest {
                 "Développement",
                 "Tunis",
                 "2 mois",
-                LocalDate.now().plusDays(5),
-                LocalDate.now().plusMonths(1)
+                LocalDate.now().plusMonths(1),
+                LocalDate.now().plusDays(5)
         );
 
         RH rh = new RH();
@@ -118,7 +118,7 @@ class OffreStageServiceImplTest {
     }
 
     @Test
-    void create_shouldThrowBadRequest_whenExpirationBeforeStartDate() {
+    void create_shouldThrowBadRequest_whenExpirationAfterStartDate() {
         UUID rhId = UUID.randomUUID();
 
         OffreStageRequest request = new OffreStageRequest(
@@ -128,8 +128,8 @@ class OffreStageServiceImplTest {
                 "Développement",
                 "Tunis",
                 "2 mois",
-                LocalDate.now().plusMonths(1),
-                LocalDate.now().plusDays(5)
+                LocalDate.now().plusDays(5),
+                LocalDate.now().plusMonths(1)
         );
 
         when(offreStageRepository.existsByReferenceOffre(request.referenceOffre())).thenReturn(false);
@@ -150,8 +150,8 @@ class OffreStageServiceImplTest {
                 "Développement",
                 "Tunis",
                 "2 mois",
-                LocalDate.now().plusDays(5),
-                LocalDate.now().plusMonths(1)
+                LocalDate.now().plusMonths(1),
+                LocalDate.now().plusDays(5)
         );
 
         when(offreStageRepository.existsByReferenceOffre(request.referenceOffre())).thenReturn(false);
@@ -243,8 +243,8 @@ class OffreStageServiceImplTest {
                 "Backend",
                 "Tunis",
                 "2 mois",
-                LocalDate.now().plusDays(5),
-                LocalDate.now().plusMonths(1)
+                LocalDate.now().plusMonths(1),
+                LocalDate.now().plusDays(5)
         );
 
         RH rh = new RH();
@@ -367,8 +367,8 @@ class OffreStageServiceImplTest {
 
         OffreStage offre = new OffreStage();
         offre.setReferenceOffre("OFF-2026-001");
-        offre.setDateDebut(LocalDate.now().plusDays(5));
-        offre.setDateExpiration(LocalDate.now().plusMonths(1));
+        offre.setDateDebut(LocalDate.now().plusMonths(1));
+        offre.setDateExpiration(LocalDate.now().plusDays(5));
         offre.setRhCreateur(rh);
 
         OffreStage savedOffre = new OffreStage();
@@ -424,8 +424,8 @@ class OffreStageServiceImplTest {
 
         OffreStage offre = new OffreStage();
         offre.setReferenceOffre("OFF-2026-001");
-        offre.setDateDebut(LocalDate.now().plusDays(5));
-        offre.setDateExpiration(LocalDate.now().plusMonths(1));
+        offre.setDateDebut(LocalDate.now().plusMonths(1));
+        offre.setDateExpiration(LocalDate.now().plusDays(5));
         offre.setRhCreateur(rh);
 
         when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
@@ -437,7 +437,7 @@ class OffreStageServiceImplTest {
     }
 
     @Test
-    void patch_shouldThrowBadRequest_whenExpirationBeforeStartDate() {
+    void patch_shouldThrowBadRequest_whenExpirationAfterStartDate() {
         UUID offreId = UUID.randomUUID();
         UUID rhId = UUID.randomUUID();
 
@@ -448,8 +448,8 @@ class OffreStageServiceImplTest {
                 null,
                 null,
                 null,
-                LocalDate.now().plusMonths(1),
-                LocalDate.now().plusDays(5)
+                LocalDate.now().plusDays(5),
+                LocalDate.now().plusMonths(1)
         );
 
         RH rh = new RH();
@@ -457,8 +457,8 @@ class OffreStageServiceImplTest {
 
         OffreStage offre = new OffreStage();
         offre.setReferenceOffre("OFF-2026-001");
-        offre.setDateDebut(LocalDate.now().plusDays(5));
-        offre.setDateExpiration(LocalDate.now().plusMonths(1));
+        offre.setDateDebut(LocalDate.now().plusMonths(1));
+        offre.setDateExpiration(LocalDate.now().plusDays(5));
         offre.setRhCreateur(rh);
 
         when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));

@@ -106,4 +106,4 @@ docker-compose.yml    Orchestration PostgreSQL + backend + frontend
 
 Le fichier `database/init.sql` contient des commandes `DROP TABLE`. Il n'est volontairement pas monté par Docker Compose : Hibernate utilise `JPA_DDL_AUTO=update` afin de conserver les données.
 
-Pour le guide détaillé, consulter [Déploiement Docker](docs/deploiement-docker.md).
+Pour le guide détaillé, consulter [Déploiement Docker](docs/deploiement-docker.md). Le scénario de démonstration et le pitch sont dans [Jour 2 — Soutenance](docs/jour-2-soutenance.md).

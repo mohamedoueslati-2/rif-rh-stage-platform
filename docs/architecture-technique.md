@@ -1,50 +1,76 @@
 # Architecture technique
 
-## 1. Vue d’ensemble
+## 1. Vue d'ensemble
 
-La plateforme est un monorepo composé d’un frontend Angular, d’une API Spring Boot et d’une base PostgreSQL.
+La plateforme est un monorepo composé d'un frontend Angular, d'une API Spring Boot et d'une base PostgreSQL.
 
 ```text
 Navigateur
    |
-   | HTTP/JSON + JWT Bearer
+   | HTTP :4200
    v
-Frontend Angular 21
+Nginx + Angular 21
    |
+   | /api/* + JWT Bearer
    v
-API Spring Boot 4.1 / Java 21
-   |                     |
-   | JPA/Hibernate       | SMTP
-   v                     v
-PostgreSQL          Serveur de messagerie
+Spring Boot 4.1 / Java 21
+   |                         |
+   | JPA/Hibernate           | SMTP/STARTTLS
+   v                         v
+PostgreSQL 16          Serveur de messagerie
 ```
 
-Il n’existe actuellement aucune intégration IA, Firebase ou FCM.
+En développement, `ng serve` utilise `proxy.conf.json`. Dans Docker, Nginx sert le bundle Angular, applique le fallback SPA et transmet `/api` au service `backend:8090`.
 
 ## 2. Organisation du dépôt
 
 ```text
 rif-rh-stage-platform/
-├── backend/             API Spring Boot et tests métier
-├── frontend/            application Angular/PrimeNG
-├── database/            script SQL historique
-├── docs/                documentation du projet
-├── .env.example         exemple de configuration
-└── docker-compose.yml   définition Docker actuellement commentée
+├── backend/             API, tests métier et image Java 21
+├── frontend/            Angular, PrimeNG, Nginx et image Node/Nginx
+├── database/            script SQL historique non monté par Compose
+├── docs/                documentation technique et soutenance
+├── .env.example         modèle commenté des variables
+└── docker-compose.yml   PostgreSQL + backend + frontend
 ```
 
-Les entités JPA et `application.properties` sont les références pour le schéma et la configuration réellement utilisés par le backend.
+Les entités JPA et `application.properties` sont les sources de vérité du schéma et de la configuration backend.
 
-## 3. Couches du backend
+## 3. Architecture frontend
+
+Le frontend est organisé par domaine fonctionnel :
+
+| Zone | Responsabilité |
+|---|---|
+| `core/guards` | protection des routes authentifiées et contrôle des rôles |
+| `core/interceptors` | ajout automatique du JWT aux requêtes protégées |
+| `layout` | topbar, sidebar contextuelle, thème clair/sombre et structure Sakai |
+| `pages/landing` | accueil public, offres filtrables et navigation publique |
+| `pages/auth` | connexion, inscription et accès refusé |
+| `pages/candidat` | dashboard, offres, candidatures et profil |
+| `pages/rh` | dashboard, CRUD offres, traitement des demandes et profil |
+
+Chaque domaine utilise des services Angular injectables pour isoler les appels HTTP. Les modèles TypeScript reflètent les DTO du backend. Les données ne sont pas simulées dans les écrans métier : elles proviennent de `/api`.
+
+### Responsive et ergonomie
+
+- grilles adaptatives avec ruptures à 1100/900/760/700/640 px selon le composant ;
+- tableaux PrimeNG scrollables/paginés et cartes repliées sur mobile ;
+- formulaires à une colonne sur petit écran ;
+- actions principales visibles, états de chargement, listes vides et messages d'erreur ;
+- filtres instantanés sans rechargement ;
+- thèmes clair et sombre gérés par `LayoutService`.
+
+## 4. Couches du backend
 
 ```text
 Requête HTTP
     ↓
 SecurityFilterChain + JwtAuthenticationFilter
     ↓
-Controller
+Controller + Jakarta Validation
     ↓
-Service / ServiceImpl
+Service / ServiceImpl + @Transactional
     ↓
 Repository Spring Data JPA
     ↓
@@ -53,28 +79,26 @@ PostgreSQL
 
 | Package | Responsabilité |
 |---|---|
-| `controller` | Routage HTTP, validation des corps, principal authentifié et codes de réponse |
-| `service` | Contrats métier, authentification, email et notification candidat |
-| `service.impl` | Transactions et règles métier des profils, offres et demandes |
-| `repository` | Requêtes Spring Data JPA |
-| `entity` | Modèle persistant JPA |
-| `dto` | Contrats JSON d’entrée et de sortie |
-| `mapper` | Conversion entre entités et DTO |
-| `security` | utilisateur Spring Security, JWT et filtre Bearer |
-| `config` | sécurité HTTP, BCrypt et initialisation du compte RH |
-| `exception` | exceptions métier et format des réponses d’erreur |
+| `controller` | routage HTTP, validation, principal JWT et codes de réponse |
+| `service` | contrats métier, authentification, email et notification |
+| `service.impl` | transactions et règles des profils, offres et demandes |
+| `repository` | accès aux données par requêtes Spring Data paramétrées |
+| `entity` | modèle persistant et relations JPA |
+| `dto` | contrats JSON et contraintes de surface |
+| `mapper` | conversion entité/DTO sans exposer les entités |
+| `security` | utilisateur Spring, JWT et filtre Bearer |
+| `config` | sécurité HTTP, BCrypt et compte RH initial |
+| `exception` | erreurs métier JSON normalisées |
 
-## 4. Sécurité
+## 5. Sécurité
 
-Le backend est sans état : aucune session HTTP n’est créée. Le flux est le suivant :
-
-1. `POST /api/auth/login` authentifie l’email et le mot de passe.
-2. `AuthService` demande l’authentification à Spring Security.
-3. `CustomUserDetailsService` cherche d’abord un RH, puis un candidat par email.
-4. `JwtService` signe un JWT HS256 contenant `id`, `role`, le sujet email, les dates d’émission et d’expiration.
-5. Le client envoie ensuite `Authorization: Bearer <token>`.
-6. `JwtAuthenticationFilter` valide le token et installe `AppUserDetails` dans le contexte de sécurité.
-7. `SecurityConfig` et `@PreAuthorize` appliquent les rôles `RH` et `CANDIDAT`.
+1. `POST /api/auth/login` reçoit un email et un mot de passe validés.
+2. Spring Security compare le mot de passe avec le hash BCrypt.
+3. `JwtService` signe un JWT HS256 contenant l'UUID, le rôle, l'email et l'expiration.
+4. Le frontend conserve la session et l'intercepteur ajoute `Authorization: Bearer <token>`.
+5. `JwtAuthenticationFilter` vérifie la signature et l'expiration à chaque requête.
+6. `SecurityConfig`, `@PreAuthorize` et les guards Angular séparent les rôles `RH` et `CANDIDAT`.
+7. L'identité métier vient de `@AuthenticationPrincipal`, jamais d'un identifiant candidat fourni par le client.
 
 Routes publiques :
 
@@ -82,58 +106,85 @@ Routes publiques :
 - `POST /api/candidats/register` ;
 - `GET /api/offres` et `GET /api/offres/{id}`.
 
-Les routes protégées récupèrent l’utilisateur courant avec `@AuthenticationPrincipal AppUserDetails`. L’identifiant métier provient donc du JWT et ne peut pas être choisi par le client.
+Protections supplémentaires :
 
-## 5. Transactions et persistance
+- API sans session (`STATELESS`) ;
+- CORS limité aux origines configurées ;
+- validation Jakarta des emails, champs obligatoires, URLs, tailles et nombres ;
+- contrôles frontend pour un retour immédiat, puis revalidation obligatoire côté serveur ;
+- secrets externalisés dans `.env`, ignoré par Git ;
+- repositories JPA paramétrés, sans concaténation SQL utilisateur ;
+- propriété vérifiée avant modification/suppression d'une offre ;
+- lecture candidat limitée à ses propres demandes.
 
-- Les écritures métier utilisent `@Transactional`.
-- Les lectures utilisent `@Transactional(readOnly = true)`.
-- Les identifiants sont des UUID générés par JPA.
-- `Personne` utilise l’héritage JPA `JOINED` avec `Candidat` et `RH`.
-- `Demande` et `OffreStage` remplissent automatiquement leurs horodatages avec `@PrePersist` et `@PreUpdate`.
-- `spring.jpa.open-in-view=false` impose que les associations nécessaires soient lues et transformées en DTO dans la transaction de service.
+## 6. Persistance et règles métier
 
-## 6. Flux métier principaux
+- écritures avec `@Transactional`, lectures avec `@Transactional(readOnly = true)` ;
+- UUID générés par JPA ;
+- héritage `JOINED` entre `Personne`, `Candidat` et `RH` ;
+- horodatages via `@PrePersist` et `@PreUpdate` ;
+- `spring.jpa.open-in-view=false` ;
+- `JPA_DDL_AUTO=update` pour préserver les données ;
+- volume Docker `postgres_data` persistant.
 
-### Dépôt d’une demande
+### Workflow de demande
 
-1. Le candidat authentifié appelle `POST /api/demandes/offre/{offreId}`.
-2. Le service vérifie l’unicité candidat/offre.
-3. Il vérifie l’existence du candidat et de l’offre.
-4. Il refuse une offre expirée ou un stage déjà commencé.
-5. Il génère la référence de demande, associe le candidat et l’offre, puis persiste au statut `SOUMISE`.
+```text
+SOUMISE
+  ├─ REFUSEE
+  └─ EN_ETUDE
+       ├─ REFUSEE
+       └─ TEST_TECHNIQUE
+            ├─ REFUSEE
+            ├─ ACCEPTEE
+            └─ ENTRETIEN_FACE_A_FACE
+                 ├─ ACCEPTEE
+                 └─ REFUSEE
+```
 
-### Changement de statut et email
+Le passage `EN_ETUDE → ENTRETIEN_FACE_A_FACE` est interdit. La note technique est acceptée seulement pendant `TEST_TECHNIQUE` ou `ENTRETIEN_FACE_A_FACE`.
 
-1. Le RH appelle `PATCH /api/demandes/{id}/statut`.
-2. Le service charge la demande et le RH traitant.
-3. Il valide la transition depuis l’ancien statut.
-4. Il sauvegarde le nouveau statut et le RH traitant.
-5. Si le statut a réellement changé, `NotificationCandidatService` choisit le sujet et le contenu.
-6. `EmailService` envoie un `SimpleMailMessage` avec `JavaMailSender`.
-7. Toute exception d’envoi est interceptée et journalisée ; la réponse métier reste réussie.
+## 7. Automatisation
 
-## 7. Gestion des erreurs
+Lors d'un changement réel de statut :
 
-`GlobalExceptionHandler` retourne un objet JSON contenant `timestamp`, `status`, `error` et `message`.
+1. la transition est validée ;
+2. le nouveau statut et le RH traitant sont persistés ;
+3. `NotificationCandidatService` choisit un sujet et un message ;
+4. `EmailService` envoie le message par SMTP ;
+5. une panne SMTP est journalisée sans annuler la décision RH.
 
-| Cas | Statut HTTP | Code `error` |
-|---|---:|---|
-| Ressource inexistante | 404 | `NOT_FOUND` |
-| Règle métier violée | 400 | `BAD_REQUEST` |
-| DTO invalide | 400 | `VALIDATION_ERROR` |
+Cette stratégie garantit la cohérence métier : la persistance reste prioritaire sur un service externe temporairement indisponible.
 
-Les refus d’authentification ou d’autorisation sont gérés par Spring Security.
+## 8. Docker et exploitation
 
-## 8. Configuration et démarrage
+`docker-compose.yml` définit trois services avec healthchecks et dépendances conditionnelles :
 
-La configuration de la base, du JWT, du CORS, du compte RH initial et de SMTP est injectée par variables d’environnement. Les détails figurent dans [configuration-backend.md](./configuration-backend.md).
+- PostgreSQL doit être sain avant Spring Boot ;
+- Spring Boot doit répondre sur `/api/offres` avant Nginx ;
+- Nginx doit répondre sur `/health`.
 
-Le backend possède un Dockerfile, mais le fichier `docker-compose.yml` actuel ne définit aucun service actif. Le lancement de référence reste Maven local ou la construction directe de l’image backend.
+Les images sont multi-stage : Maven/Java pour le backend, Node/Nginx pour le frontend. Les conteneurs ont été validés ensemble avec le frontend sur `4200`, l'API sur `8090` et PostgreSQL Docker sur un port hôte configurable.
 
-## 9. Références
+Voir [Déploiement Docker](./deploiement-docker.md).
 
-- [Services métier](./services-metier.md)
-- [API REST](./api-rest.md)
-- [Schéma de base de données](./schema-base-donnees.md)
-- [Diagramme de classes](./diagramme-classes.md), conservé sans modification
+## 9. Tests et qualité
+
+Le backend possède 53 tests unitaires JUnit/Mockito répartis entre candidats, RH, offres et demandes. Ils couvrent les cas nominaux et négatifs : doublons, dates, propriété, suppressions protégées, transitions, notes et panne SMTP.
+
+Commandes de contrôle :
+
+```bash
+cd backend && ./mvnw test
+cd frontend && npm run build
+docker compose config
+```
+
+## 10. Limites assumées
+
+- pas de pagination ou recherche côté serveur ;
+- pas de stockage binaire des CV, seulement des URLs validées ;
+- pas de date d'entretien persistée ;
+- pas de refresh token/révocation serveur ;
+- email synchrone sans file de messages ;
+- pas d'intégration IA, FCM ou génération PDF.

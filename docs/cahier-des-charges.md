@@ -114,7 +114,7 @@ Transitions autorisées :
 | Depuis | Vers |
 |---|---|
 | `SOUMISE` | `EN_ETUDE`, `REFUSEE` |
-| `EN_ETUDE` | `TEST_TECHNIQUE`, `ENTRETIEN_FACE_A_FACE`, `REFUSEE` |
+| `EN_ETUDE` | `TEST_TECHNIQUE`, `REFUSEE` |
 | `TEST_TECHNIQUE` | `ENTRETIEN_FACE_A_FACE`, `ACCEPTEE`, `REFUSEE` |
 | `ENTRETIEN_FACE_A_FACE` | `ACCEPTEE`, `REFUSEE` |
 | `ACCEPTEE` | aucune |
@@ -123,6 +123,8 @@ Transitions autorisées :
 La répétition du même statut est acceptée, mais ne déclenche pas de nouvel email. Les statuts `ACCEPTEE` et `REFUSEE` sont finaux.
 
 La note de test est autorisée uniquement lorsque la demande est à l’étape `TEST_TECHNIQUE` ou `ENTRETIEN_FACE_A_FACE`.
+
+Le passage direct de `EN_ETUDE` à `ENTRETIEN_FACE_A_FACE` est interdit : l'étape `TEST_TECHNIQUE` est obligatoire avant l'entretien.
 
 ## 8. Notifications par email
 
@@ -148,6 +150,17 @@ Aucun email n’est envoyé pour `SOUMISE`, pour une adresse absente ou pour une
 - configuration externalisée par variables d’environnement ;
 - séparation entre contrôleurs, services, dépôts, entités, DTO et mappers.
 
+### Interface utilisateur livrée
+
+- landing page publique avec offres chargées depuis l'API et filtres dynamiques ;
+- authentification, inscription et redirection selon le rôle ;
+- dashboards RH et candidat alimentés par les données réelles, avec statistiques et graphiques ;
+- CRUD des offres côté RH avec contrôles de dates et filtres client ;
+- consultation, dépôt et suivi des demandes côté candidat ;
+- traitement RH avec filtres par offre/statut/candidat et timeline PrimeNG ;
+- profils candidat et RH, changement de mot de passe candidat ;
+- thèmes clair/sombre et mises en page responsives jusqu'aux écrans mobiles.
+
 ## 10. Hors périmètre actuel
 
 Ne sont pas implémentés dans le backend actuel :
@@ -159,7 +172,7 @@ Ne sont pas implémentés dans le backend actuel :
 - téléversement et lecture automatique du contenu d’un CV ;
 - stockage d’une date d’entretien ;
 - création libre d’un compte RH ;
-- pagination et filtrage avancé des listes.
+- pagination et filtrage côté serveur. Les écrans actuels proposent une pagination et des filtres dynamiques côté client.
 
 ## 11. Critères d’acceptation principaux
 

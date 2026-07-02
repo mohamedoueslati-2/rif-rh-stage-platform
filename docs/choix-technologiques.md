@@ -1,48 +1,46 @@
 # Choix technologiques
 
-## 1. Technologies réellement utilisées
+## Technologies utilisées
 
-| Domaine | Technologie | Usage dans le projet |
+| Domaine | Technologie | Usage |
 |---|---|---|
-| Langage backend | Java 21 | Records DTO, text blocks et logique métier |
-| Framework backend | Spring Boot 4.1.0 | Configuration et assemblage de l’API |
-| API HTTP | Spring Web MVC | Contrôleurs REST et sérialisation JSON |
-| Persistance | Spring Data JPA / Hibernate | Entités, transactions et repositories |
-| Base de données | PostgreSQL | Stockage relationnel |
-| Sécurité | Spring Security | Authentification, autorisation et sécurité par rôles |
-| Tokens | JJWT 0.12.6 | Création et validation des JWT HS256 |
-| Mots de passe | BCrypt | Hash des mots de passe candidat et RH |
-| Validation | Jakarta Validation / Hibernate Validator | Validation des DTO d’entrée |
-| Email | Spring Boot Starter Mail | Envoi SMTP avec `JavaMailSender` |
-| Réduction du code répétitif | Lombok 1.18.40 | Constructeurs et accesseurs |
-| Build | Maven Wrapper | Build reproductible du backend |
-| Tests | Spring Boot Test, JUnit 5, Mockito | Tests unitaires des services métier |
-| Frontend | Angular 21, PrimeNG 21, Sakai | Interface web |
+| Frontend | Angular 21, TypeScript, RxJS | composants standalone, routage, formulaires et appels HTTP |
+| UI | PrimeNG 21, Sakai, PrimeIcons | composants accessibles, thème et layout responsive |
+| Visualisation | Chart.js 4 | statistiques des dashboards RH et candidat |
+| Backend | Java 21, Spring Boot 4.1 | API REST et assemblage applicatif |
+| Sécurité | Spring Security, JJWT, BCrypt | JWT stateless, rôles et hash des mots de passe |
+| Validation | Jakarta Validation, Hibernate Validator | contraintes des DTO côté serveur |
+| Persistance | Spring Data JPA, Hibernate | transactions, entités et repositories |
+| Base | PostgreSQL 16 | stockage relationnel et contraintes |
+| Automatisation | Spring Mail | notification email lors du changement de statut |
+| Tests | JUnit, Mockito, Spring Boot Test | 53 tests unitaires métier |
+| Build | Maven Wrapper, npm | builds reproductibles backend/frontend |
+| Conteneurs | Docker, Docker Compose, Nginx | déploiement complet et reverse proxy `/api` |
 
-## 2. Justification du backend Spring Boot
+## Pourquoi Angular et PrimeNG ?
 
-L’architecture en couches de Spring Boot convient au domaine : les contrôleurs restent centrés sur HTTP, les services concentrent les règles métier, et les repositories isolent la persistance. Les annotations transactionnelles protègent les opérations multi-étapes telles que la création d’une demande ou le changement de statut.
+Angular impose une structure claire par composants et services, fournit le routage, l'interception HTTP et les guards. Les composants standalone réduisent le couplage aux modules globaux.
 
-## 3. Justification de PostgreSQL et JPA
+PrimeNG accélère la réalisation d'interfaces cohérentes : tables, dialogues, timeline, confirmations, messages, tags et graphiques. Sakai apporte le layout, mais les pages de démonstration inutiles ont été supprimées pour conserver uniquement le code métier.
 
-Le domaine est fortement relationnel : une demande relie un candidat, une offre et éventuellement un RH traitant. PostgreSQL fournit les contraintes et relations nécessaires, tandis que JPA matérialise l’héritage entre `Personne`, `Candidat` et `RH` et les associations entre les entités.
+## Pourquoi Spring Boot ?
 
-## 4. Justification de JWT et BCrypt
+L'architecture en couches sépare HTTP, métier et persistance. Les annotations transactionnelles protègent les opérations multi-étapes, tandis que Spring Security et Jakarta Validation fournissent des contrôles standardisés.
 
-Le JWT permet une API REST sans session serveur et transporte l’identité et le rôle du compte connecté. BCrypt évite le stockage des mots de passe en clair. Les autorisations sont contrôlées à la fois dans la chaîne de filtres HTTP et avec `@PreAuthorize`.
+## Pourquoi PostgreSQL et JPA ?
 
-## 5. Justification de SMTP
+Le domaine est relationnel : une demande lie un candidat, une offre et éventuellement un RH traitant. PostgreSQL garantit l'intégrité des UUID, clés étrangères et valeurs uniques. JPA représente l'héritage `Personne → Candidat/RH` et évite la construction manuelle de SQL utilisateur.
 
-Spring Mail envoie directement des messages textuels lors du changement de statut. La configuration est externalisée et peut pointer vers Gmail ou un autre fournisseur SMTP. L’envoi est volontairement simple pour le MVP, et son échec est isolé afin de ne pas bloquer la décision RH.
+## Pourquoi JWT et BCrypt ?
 
-## 6. Éléments non retenus dans l’implémentation actuelle
+Le JWT permet une API sans session serveur et transporte l'identité et le rôle. BCrypt protège les mots de passe au repos. Le rôle est contrôlé côté backend ; les guards Angular améliorent l'expérience mais ne remplacent pas l'autorisation serveur.
 
-Le projet ne contient pas de dépendance ni de service pour :
+## Pourquoi une notification SMTP ?
 
-- Gemini, Vertex AI, Groq ou une autre IA ;
-- Firebase Cloud Messaging ;
-- Gmail API ou liens `mailto` ;
-- broker de messages ou file asynchrone ;
-- table de notifications.
+L'email répond directement au besoin d'automatisation du workflow. Chaque changement de statut pertinent produit un message contextualisé. L'échec du fournisseur SMTP est isolé pour ne pas annuler la mise à jour métier déjà validée.
 
-Ces technologies ne doivent donc pas être présentées comme des fonctions disponibles.
+## Pourquoi Docker et Nginx ?
+
+Docker Compose fournit le même environnement PostgreSQL/Java/Nginx sur chaque machine. Les builds multi-stage excluent Maven, Node et les sources des images finales. Nginx sert efficacement Angular, gère le fallback du routeur et masque l'adresse interne du backend derrière `/api`.
+
+

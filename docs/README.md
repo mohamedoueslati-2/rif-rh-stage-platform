@@ -12,6 +12,7 @@ Cette documentation décrit l'état implémenté de la plateforme. Le code Sprin
 | [API REST](./api-rest.md) | Endpoints, rôles, entrées et réponses |
 | [Configuration backend](./configuration-backend.md) | Variables d'environnement, lancement local et SMTP |
 | [Déploiement Docker](./deploiement-docker.md) | Images, Compose, `.env`, volumes, logs et diagnostic |
+| [Jour 2 et soutenance](./jour-2-soutenance.md) | Audit, conformité, scénario de démo, grille et pitch de 5 minutes |
 | [Choix technologiques](./choix-technologiques.md) | Technologies présentes dans le projet |
 | [Schéma de base de données](./schema-base-donnees.md) | Tables et relations issues des entités JPA |
 | [Diagramme de classes](./diagramme-classes.md) | Modèle objet de l'application |

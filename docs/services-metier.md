@@ -136,14 +136,11 @@ SOUMISE
 │   │   │   └── REFUSEE
 │   │   ├── ACCEPTEE
 │   │   └── REFUSEE
-│   ├── ENTRETIEN_FACE_A_FACE
-│   │   ├── ACCEPTEE
-│   │   └── REFUSEE
 │   └── REFUSEE
 └── REFUSEE
 ```
 
-Une demande ne passe donc pas directement de `SOUMISE` à `ACCEPTEE`. `ACCEPTEE` et `REFUSEE` n’ont aucune sortie. Demander le même statut est toléré comme opération idempotente.
+Une demande ne passe pas directement de `EN_ETUDE` à l'entretien : elle doit atteindre `TEST_TECHNIQUE`. Elle ne passe pas non plus directement de `SOUMISE` à `ACCEPTEE`. `ACCEPTEE` et `REFUSEE` n’ont aucune sortie. Demander le même statut est toléré comme opération idempotente.
 
 ## 8. `NotificationCandidatService`
 
