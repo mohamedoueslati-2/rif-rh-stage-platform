@@ -44,14 +44,14 @@ Réponse :
 
 ## 3. Candidats
 
-| Méthode | Route | Accès | En-tête supplémentaire | Description |
-|---|---|---|---|---|
-| `POST` | `/api/candidats/register` | Public | — | Crée un compte candidat |
-| `GET` | `/api/candidats/profil` | CANDIDAT | `X-Candidat-Id` | Retourne le profil désigné |
-| `PUT` | `/api/candidats/profil` | CANDIDAT | `X-Candidat-Id` | Remplace les données du profil |
-| `PATCH` | `/api/candidats/profil` | CANDIDAT | `X-Candidat-Id` | Modifie les champs fournis |
-| `PUT` | `/api/candidats/profil/password` | CANDIDAT | `X-Candidat-Id` | Change le mot de passe |
-| `DELETE` | `/api/candidats/profil` | CANDIDAT | `X-Candidat-Id` | Supprime un profil sans demande |
+| Méthode | Route | Accès | Description |
+|---|---|---|---|
+| `POST` | `/api/candidats/register` | Public | Crée un compte candidat |
+| `GET` | `/api/candidats/profil` | CANDIDAT | Retourne le profil du candidat connecté |
+| `PUT` | `/api/candidats/profil` | CANDIDAT | Remplace le profil du candidat connecté |
+| `PATCH` | `/api/candidats/profil` | CANDIDAT | Modifie les champs fournis du candidat connecté |
+| `PUT` | `/api/candidats/profil/password` | CANDIDAT | Change le mot de passe du candidat connecté |
+| `DELETE` | `/api/candidats/profil` | CANDIDAT | Supprime le profil connecté s’il ne possède aucune demande |
 
 Corps d’inscription :
 
@@ -79,6 +79,8 @@ Changement de mot de passe :
 ```
 
 Réponse `CandidatResponse` : `id`, `nom`, `prenom`, `email`, `telephone`, `specialite`, `niveauEtude`, `createdAt`.
+
+L’identité du candidat provient exclusivement du JWT. Aucun identifiant candidat supplémentaire ne doit être envoyé dans les en-têtes.
 
 ## 4. Profil RH
 

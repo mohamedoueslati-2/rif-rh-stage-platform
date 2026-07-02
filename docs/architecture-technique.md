@@ -82,7 +82,7 @@ Routes publiques :
 - `POST /api/candidats/register` ;
 - `GET /api/offres` et `GET /api/offres/{id}`.
 
-Particularité actuelle : les routes de profil candidat utilisent encore l’en-tête `X-Candidat-Id`, bien qu’elles soient limitées au rôle `CANDIDAT`. Les routes de demandes et toutes les routes RH utilisent directement l’identifiant du principal JWT.
+Les routes protégées récupèrent l’utilisateur courant avec `@AuthenticationPrincipal AppUserDetails`. L’identifiant métier provient donc du JWT et ne peut pas être choisi par le client.
 
 ## 5. Transactions et persistance
 

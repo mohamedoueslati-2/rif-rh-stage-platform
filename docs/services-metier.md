@@ -48,9 +48,9 @@ Il n’existe pas de rafraîchissement de token ni de révocation serveur dans l
 - Le profil peut être supprimé uniquement si aucune demande ne référence le candidat.
 - Cette protection évite de casser l’historique des candidatures.
 
-### Limite de sécurité actuelle
+### Isolation de l’identité
 
-Le contrôleur de profil candidat prend encore l’UUID dans `X-Candidat-Id`. La route exige bien le rôle `CANDIDAT`, mais l’identité ciblée n’est pas dérivée du JWT. À terme, ces routes devraient utiliser `@AuthenticationPrincipal`, comme les routes de demandes, afin de garantir l’isolation entre candidats.
+Le contrôleur récupère `AppUserDetails` depuis le principal JWT et transmet `currentUser.getId()` au service. Le client ne fournit aucun identifiant candidat : il ne peut donc pas cibler le profil d’un autre candidat par un en-tête manipulé.
 
 ## 4. `RhServiceImpl`
 
