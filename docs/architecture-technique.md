@@ -1,225 +1,139 @@
 # Architecture technique
 
-## 1. Type d’architecture
+## 1. Vue d’ensemble
 
-Le projet utilise une architecture simple en couches, adaptée à un MVP de 2 jours.
-
-L’objectif est de séparer clairement :
-
-- l’interface utilisateur ;
-- la logique métier ;
-- l’accès aux données ;
-- les services externes.
-
----
-
-## 2. Vue globale
+La plateforme est un monorepo composé d’un frontend Angular, d’une API Spring Boot et d’une base PostgreSQL.
 
 ```text
-Utilisateur
-    |
-    v
-Frontend Angular
-    |
-    v
-API REST Spring Boot
-    |
-    v
-PostgreSQL
+Navigateur
+   |
+   | HTTP/JSON + JWT Bearer
+   v
+Frontend Angular 21
+   |
+   v
+API Spring Boot 4.1 / Java 21
+   |                     |
+   | JPA/Hibernate       | SMTP
+   v                     v
+PostgreSQL          Serveur de messagerie
 ```
 
-Services externes :
+Il n’existe actuellement aucune intégration IA, Firebase ou FCM.
 
-```text
-Spring Boot
-    |
-    +--> API IA : Gemini / Groq
-    |
-    +--> Firebase FCM
-    |
-    +--> Gmail / mailto
-```
-
----
-
-## 3. Architecture applicative
+## 2. Organisation du dépôt
 
 ```text
 rif-rh-stage-platform/
-├── frontend/
-│   └── Application Angular
-│
-├── backend/
-│   └── API REST Spring Boot
-│
-├── database/
-│   └── Script SQL PostgreSQL
-│
-├── docs/
-│   └── Documentation technique et fonctionnelle
-│
-└── docker-compose.yml
+├── backend/             API Spring Boot et tests métier
+├── frontend/            application Angular/PrimeNG
+├── database/            script SQL historique
+├── docs/                documentation du projet
+├── .env.example         exemple de configuration
+└── docker-compose.yml   définition Docker actuellement commentée
 ```
 
----
+Les entités JPA et `application.properties` sont les références pour le schéma et la configuration réellement utilisés par le backend.
 
-## 4. Architecture backend
-
-Le backend Spring Boot peut être organisé comme suit :
+## 3. Couches du backend
 
 ```text
-backend/
-└── src/main/java/
-    └── com/rif/rhstage/
-        ├── controller/
-        ├── service/
-        ├── repository/
-        ├── entity/
-        ├── dto/
-        ├── mapper/
-        ├── security/
-        └── config/
+Requête HTTP
+    ↓
+SecurityFilterChain + JwtAuthenticationFilter
+    ↓
+Controller
+    ↓
+Service / ServiceImpl
+    ↓
+Repository Spring Data JPA
+    ↓
+PostgreSQL
 ```
 
-### Rôle des couches
-
-| Couche | Rôle |
+| Package | Responsabilité |
 |---|---|
-| Controller | Expose les endpoints REST |
-| Service | Contient la logique métier |
-| Repository | Accès à la base de données |
-| Entity | Représente les tables |
-| DTO | Transporte les données entre frontend et backend |
-| Mapper | Convertit Entity vers DTO |
-| Security | Gestion JWT et rôles |
-| Config | Configuration globale |
+| `controller` | Routage HTTP, validation des corps, principal authentifié et codes de réponse |
+| `service` | Contrats métier, authentification, email et notification candidat |
+| `service.impl` | Transactions et règles métier des profils, offres et demandes |
+| `repository` | Requêtes Spring Data JPA |
+| `entity` | Modèle persistant JPA |
+| `dto` | Contrats JSON d’entrée et de sortie |
+| `mapper` | Conversion entre entités et DTO |
+| `security` | utilisateur Spring Security, JWT et filtre Bearer |
+| `config` | sécurité HTTP, BCrypt et initialisation du compte RH |
+| `exception` | exceptions métier et format des réponses d’erreur |
 
----
+## 4. Sécurité
 
-## 5. Architecture frontend
+Le backend est sans état : aucune session HTTP n’est créée. Le flux est le suivant :
 
-Le frontend Angular peut être organisé comme suit :
+1. `POST /api/auth/login` authentifie l’email et le mot de passe.
+2. `AuthService` demande l’authentification à Spring Security.
+3. `CustomUserDetailsService` cherche d’abord un RH, puis un candidat par email.
+4. `JwtService` signe un JWT HS256 contenant `id`, `role`, le sujet email, les dates d’émission et d’expiration.
+5. Le client envoie ensuite `Authorization: Bearer <token>`.
+6. `JwtAuthenticationFilter` valide le token et installe `AppUserDetails` dans le contexte de sécurité.
+7. `SecurityConfig` et `@PreAuthorize` appliquent les rôles `RH` et `CANDIDAT`.
 
-```text
-frontend/
-└── src/app/
-    ├── core/
-    ├── shared/
-    ├── features/
-    │   ├── auth/
-    │   ├── candidat/
-    │   ├── rh/
-    │   ├── offres/
-    │   └── demandes/
-    └── layout/
-```
+Routes publiques :
 
-### Rôle des dossiers
+- `POST /api/auth/login` ;
+- `POST /api/candidats/register` ;
+- `GET /api/offres` et `GET /api/offres/{id}`.
 
-| Dossier | Rôle |
-|---|---|
-| core | Services globaux, guards, interceptors |
-| shared | Composants réutilisables |
-| features/auth | Connexion et inscription |
-| features/candidat | Espace candidat |
-| features/rh | Espace RH |
-| features/offres | Gestion des offres |
-| features/demandes | Gestion des demandes |
-| layout | Menu, sidebar, header |
+Particularité actuelle : les routes de profil candidat utilisent encore l’en-tête `X-Candidat-Id`, bien qu’elles soient limitées au rôle `CANDIDAT`. Les routes de demandes et toutes les routes RH utilisent directement l’identifiant du principal JWT.
 
----
+## 5. Transactions et persistance
 
-## 6. Communication frontend / backend
+- Les écritures métier utilisent `@Transactional`.
+- Les lectures utilisent `@Transactional(readOnly = true)`.
+- Les identifiants sont des UUID générés par JPA.
+- `Personne` utilise l’héritage JPA `JOINED` avec `Candidat` et `RH`.
+- `Demande` et `OffreStage` remplissent automatiquement leurs horodatages avec `@PrePersist` et `@PreUpdate`.
+- `spring.jpa.open-in-view=false` impose que les associations nécessaires soient lues et transformées en DTO dans la transaction de service.
 
-Le frontend communique avec le backend via des API REST.
+## 6. Flux métier principaux
 
-Exemples :
+### Dépôt d’une demande
 
-```text
-GET    /api/offres
-POST   /api/demandes
-PATCH  /api/demandes/{id}/statut
-POST   /api/demandes/{id}/analyse-ia
-```
+1. Le candidat authentifié appelle `POST /api/demandes/offre/{offreId}`.
+2. Le service vérifie l’unicité candidat/offre.
+3. Il vérifie l’existence du candidat et de l’offre.
+4. Il refuse une offre expirée ou un stage déjà commencé.
+5. Il génère la référence de demande, associe le candidat et l’offre, puis persiste au statut `SOUMISE`.
 
----
+### Changement de statut et email
 
-## 7. Architecture base de données
+1. Le RH appelle `PATCH /api/demandes/{id}/statut`.
+2. Le service charge la demande et le RH traitant.
+3. Il valide la transition depuis l’ancien statut.
+4. Il sauvegarde le nouveau statut et le RH traitant.
+5. Si le statut a réellement changé, `NotificationCandidatService` choisit le sujet et le contenu.
+6. `EmailService` envoie un `SimpleMailMessage` avec `JavaMailSender`.
+7. Toute exception d’envoi est interceptée et journalisée ; la réponse métier reste réussie.
 
-Les tables principales sont :
+## 7. Gestion des erreurs
 
-- personnes ;
-- candidats ;
-- rh ;
-- offres_stage ;
-- demandes.
+`GlobalExceptionHandler` retourne un objet JSON contenant `timestamp`, `status`, `error` et `message`.
 
-Relations principales :
+| Cas | Statut HTTP | Code `error` |
+|---|---:|---|
+| Ressource inexistante | 404 | `NOT_FOUND` |
+| Règle métier violée | 400 | `BAD_REQUEST` |
+| DTO invalide | 400 | `VALIDATION_ERROR` |
 
-```text
-Personne 1 --- 1 Candidat
-Personne 1 --- 1 RH
-RH 1 --- * OffreStage
-Candidat 1 --- * Demande
-OffreStage 1 --- * Demande
-RH 0..1 --- * Demande
-```
+Les refus d’authentification ou d’autorisation sont gérés par Spring Security.
 
----
+## 8. Configuration et démarrage
 
-## 8. Workflow technique principal
+La configuration de la base, du JWT, du CORS, du compte RH initial et de SMTP est injectée par variables d’environnement. Les détails figurent dans [configuration-backend.md](./configuration-backend.md).
 
-```text
-1. Le candidat consulte les offres depuis Angular.
-2. Angular appelle l’API Spring Boot.
-3. Spring Boot lit les offres depuis PostgreSQL.
-4. Le candidat dépose une demande avec cvUrl.
-5. Spring Boot valide les données.
-6. La demande est enregistrée dans PostgreSQL.
-7. Le RH consulte les demandes.
-8. Le RH lance l’analyse IA.
-9. Spring Boot appelle l’API IA.
-10. Le score et le commentaire sont enregistrés.
-11. Le RH change le statut.
-12. Spring Boot déclenche FCM si nécessaire.
-13. Le RH peut ouvrir Gmail avec un email prérempli.
-```
+Le backend possède un Dockerfile, mais le fichier `docker-compose.yml` actuel ne définit aucun service actif. Le lancement de référence reste Maven local ou la construction directe de l’image backend.
 
----
+## 9. Références
 
-## 9. Architecture Docker prévue
-
-Pour le moment, seuls les dossiers et les Dockerfiles vides sont préparés.
-
-Architecture cible :
-
-```text
-docker-compose.yml
-    |
-    +--> postgres
-    +--> backend
-    +--> frontend
-```
-
-Images prévues :
-
-| Service | Image |
-|---|---|
-| frontend | Image Angular buildée avec Nginx |
-| backend | Image Spring Boot |
-| postgres | Image officielle PostgreSQL |
-
-La base PostgreSQL n’a pas besoin de Dockerfile, car elle utilise l’image officielle `postgres`.
-
----
-
-## 10. Résumé
-
-Cette architecture est simple, claire et adaptée au MVP.
-
-Elle permet :
-
-- un développement rapide ;
-- une séparation claire frontend/backend/database ;
-- un déploiement facile avec Docker Compose ;
-- une évolution future vers une architecture plus avancée si nécessaire.
+- [Services métier](./services-metier.md)
+- [API REST](./api-rest.md)
+- [Schéma de base de données](./schema-base-donnees.md)
+- [Diagramme de classes](./diagramme-classes.md), conservé sans modification

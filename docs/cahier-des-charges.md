@@ -1,406 +1,175 @@
-## Cahier des charges — Plateforme RH RIF Stages
+# Cahier des charges — Plateforme RH RIF Stages
 
-### 1. Contexte du projet
+## 1. Contexte et objectif
 
-Le projet correspond à l’axe **Flux de Travail** inspiré de **RIF-Stages** : formulaire de dépôt de candidature, workflow de validation RH et notification automatique.
+La plateforme centralise le recrutement de stagiaires. Elle permet à un candidat de gérer son profil, consulter les offres et déposer une candidature. Elle permet au RH de gérer ses offres et de faire progresser les demandes dans un workflow contrôlé.
 
-Le challenge demande un **MVP fonctionnel en 2 jours** avec maquette, modèle de données, développement, automatisation et démo finale.
+Le périmètre décrit ici correspond au backend Spring Boot réellement livré.
 
-L’objectif est de créer une application permettant aux candidats de déposer des demandes de stage, et aux RH de gérer les offres, analyser les candidatures, changer les statuts et contacter les candidats.
+## 2. Acteurs
 
----
-
-### 2. Objectif général
-
-Développer une plateforme RH simple pour gérer les candidatures de stage.
-
-Le système doit permettre :
-
-* aux candidats de consulter les offres de stage ;
-* aux candidats de déposer une demande de stage ;
-* aux candidats d’ajouter un lien Google Drive vers leur CV ;
-* aux candidats d’ajouter une lettre de motivation optionnelle ;
-* aux RH de créer et gérer les offres de stage ;
-* aux RH de consulter les demandes reçues ;
-* aux RH d’analyser les candidatures avec un assistant IA ;
-* aux RH de modifier le statut d’une demande ;
-* aux RH de sélectionner des candidats et préparer un email ;
-* au système d’envoyer des notifications aux candidats en cas d’acceptation ou de refus.
-
----
-
-### 3. Acteurs du système
-
-#### 3.1 Candidat
+### Candidat
 
 Le candidat peut :
 
-* créer un compte ;
-* se connecter ;
-* consulter les offres de stage disponibles ;
-* déposer une demande pour une offre ;
-* ajouter un lien Google Drive vers son CV ;
-* ajouter une lettre de motivation optionnelle ;
-* suivre le statut de sa demande.
+- créer un compte et se connecter ;
+- consulter et modifier son profil ;
+- changer son mot de passe ;
+- supprimer son profil tant qu’il ne possède aucune demande ;
+- consulter les offres non expirées et le détail d’une offre ;
+- déposer au maximum une demande par offre ;
+- consulter uniquement ses propres demandes ;
+- annuler une demande tant qu’elle est au statut `SOUMISE` ;
+- recevoir un email lorsque le RH change effectivement le statut de sa demande.
 
-#### 3.2 RH
-
-Le responsable RH peut :
-
-* se connecter ;
-* créer, modifier et supprimer des offres de stage ;
-* consulter les candidatures reçues ;
-* consulter les informations des candidats ;
-* analyser les CV et demandes avec un assistant IA ;
-* attribuer une note ou un score à une candidature ;
-* changer le statut d’une demande ;
-* sélectionner plusieurs candidats ;
-* ouvrir Gmail ou une application mail avec les emails préparés ;
-* envoyer manuellement l’email après vérification.
-
----
-
-### 4. Besoins fonctionnels
-
-#### 4.1 Gestion des comptes
-
-Le système doit permettre :
-
-* l’inscription d’un candidat ;
-* la connexion d’un candidat ;
-* la connexion d’un responsable RH ;
-* la séparation des accès selon les rôles : Candidat ou RH.
-
----
-
-#### 4.2 Gestion des offres de stage
+### Responsable RH
 
 Le RH peut :
 
-* créer une offre de stage ;
-* modifier une offre existante ;
-* supprimer une offre ;
-* consulter la liste des offres ;
-* définir les informations principales :
+- se connecter avec un compte initial créé automatiquement au démarrage ;
+- consulter et modifier son profil ;
+- créer une offre ;
+- modifier totalement ou partiellement une offre dont il est le créateur ;
+- supprimer sa propre offre si aucune demande n’y est rattachée ;
+- consulter toutes les demandes et leur détail ;
+- modifier le statut d’une demande selon les transitions autorisées ;
+- ajouter un commentaire RH ;
+- attribuer une note de test comprise entre 0 et 100 aux étapes autorisées.
 
-  * titre ;
-  * description ;
-  * domaine ;
-  * lieu ;
-  * durée ;
-  * date de début ;
-  * date d’expiration.
+## 3. Authentification et autorisation
 
-Le candidat peut :
+- La connexion utilise l’email et le mot de passe.
+- Les mots de passe sont stockés sous forme de hash BCrypt.
+- Une connexion réussie retourne un JWT de type `Bearer` contenant l’identifiant et le rôle.
+- Les rôles applicatifs sont `CANDIDAT` et `RH`.
+- L’API est sans session serveur (`STATELESS`).
+- L’inscription candidat, la connexion et la lecture des offres sont publiques.
+- Les autres opérations sont protégées selon le rôle.
 
-* consulter les offres disponibles ;
-* voir le détail d’une offre ;
-* déposer une demande pour une offre.
+## 4. Gestion des profils
 
----
+### Profil candidat
 
-#### 4.3 Gestion des demandes de stage
+Les données gérées sont le nom, le prénom, l’email, le téléphone, la spécialité et le niveau d’étude.
 
-Une demande représente la candidature d’un candidat à une offre de stage.
+Règles :
 
-Chaque demande contient :
+- l’email est unique parmi toutes les personnes, candidats et RH confondus ;
+- le mot de passe d’inscription contient au moins 6 caractères ;
+- un changement de mot de passe exige l’ancien mot de passe correct ;
+- un profil candidat lié à une ou plusieurs demandes ne peut pas être supprimé.
 
-* la date de dépôt ;
-* le lien Google Drive du CV ;
-* le lien Google Drive de la lettre de motivation ;
-* le statut de la demande ;
-* la note du test technique ;
-* la date d’entretien ;
-* le commentaire RH ;
-* la date de dernière modification.
+### Profil RH
 
-Correction importante :
-Le **CV** et la **lettre de motivation** appartiennent à la classe **Demande**, car ils sont liés à une candidature précise, pas directement au profil général du candidat.
+Les données gérées sont le nom, le prénom, l’email, le nom d’affichage et le contact professionnel. L’email reste unique parmi toutes les personnes.
 
----
+## 5. Gestion des offres
 
-#### 4.4 Workflow de candidature
+Une offre contient :
 
-Le workflow principal est le suivant :
+- une référence unique ;
+- un titre et une description ;
+- un domaine, un lieu et une durée ;
+- une date de début ;
+- une date d’expiration des candidatures ;
+- sa date de création ;
+- le RH créateur.
 
-1. Le RH crée une offre de stage.
-2. Le candidat consulte les offres disponibles.
-3. Le candidat dépose une demande.
-4. Le candidat ajoute :
+Règles :
 
-   * le lien Google Drive de son CV ;
-   * une lettre de motivation optionnelle.
-5. Le RH consulte les demandes reçues.
-6. Le RH peut lancer une analyse IA.
-7. Le système propose une évaluation ou un score.
-8. Le RH prend la décision finale.
-9. Le RH change le statut :
+- les dates de début et d’expiration ne peuvent pas être dans le passé ;
+- la date d’expiration doit être antérieure ou égale à la date de début ;
+- la liste publique ne retourne que les offres dont la date d’expiration est aujourd’hui ou dans le futur ;
+- seul le RH créateur peut modifier ou supprimer l’offre ;
+- une offre possédant déjà une demande ne peut pas être supprimée.
 
-   * en attente ;
-   * acceptée ;
-   * refusée ;
-   * entretien ;
-   * test technique.
-10. Le candidat reçoit une notification.
+## 6. Gestion des demandes
 
----
+Une demande contient notamment :
 
-#### 4.5 Assistant IA RH
+- une référence générée au format `DEM-AAAA-XXXXXXXX` ;
+- sa date de dépôt et sa date de dernière modification ;
+- une URL de CV obligatoire ;
+- une URL de lettre de motivation optionnelle ;
+- un statut ;
+- une note de test optionnelle ;
+- un commentaire RH optionnel ;
+- le candidat, l’offre et éventuellement le RH traitant.
 
-L’application peut intégrer un assistant IA pour aider le RH à analyser les candidatures.
+Règles de dépôt :
 
-L’assistant IA peut :
+- le candidat et l’offre doivent exister ;
+- un candidat ne peut déposer qu’une seule demande par offre ;
+- le dépôt est refusé si l’offre est expirée ou si le stage a déjà commencé ;
+- le statut initial est `SOUMISE`.
 
-* analyser le contenu du CV à partir du lien fourni ;
-* comparer le profil du candidat avec l’offre ;
-* générer un résumé du profil ;
-* proposer une note ou un score ;
-* donner une recommandation :
+## 7. Workflow des statuts
 
-  * profil adapté ;
-  * profil moyen ;
-  * profil non adapté.
+Les statuts sont :
 
-Technologies possibles :
+`SOUMISE`, `EN_ETUDE`, `TEST_TECHNIQUE`, `ENTRETIEN_FACE_A_FACE`, `ACCEPTEE`, `REFUSEE`.
 
-* Gemini / Vertex AI ;
-* Groq ;
-* autre API IA compatible.
+Transitions autorisées :
 
-La décision finale reste toujours validée par le RH.
-
----
-
-#### 4.6 Envoi d’email via Gmail ou application mail
-
-Pour éviter la complexité d’un serveur SMTP, l’application peut utiliser une solution simple :
-
-1. Le RH sélectionne un ou plusieurs candidats.
-2. Le RH clique sur le bouton **Envoyer email**.
-3. L’application ouvre Gmail ou l’application mail.
-4. Les destinataires sont automatiquement ajoutés.
-5. Le sujet et le contenu de l’email sont préremplis.
-6. Le RH vérifie le contenu.
-7. Le RH clique lui-même sur **Envoyer**.
-
-Cette approche est simple, gratuite et adaptée à un MVP.
-
----
-
-#### 4.7 Notifications candidats
-
-Le système peut envoyer une notification au candidat lorsque le statut de sa demande change.
-
-Exemples :
-
-* candidature acceptée ;
-* candidature refusée ;
-* entretien programmé ;
-* test technique demandé.
-
-Technologie possible :
-
-* Firebase Cloud Messaging, FCM.
-
----
-
-### 5. Besoins non fonctionnels
-
-Le système doit être :
-
-* simple à utiliser ;
-* responsive web et mobile ;
-* sécurisé avec authentification ;
-* clair pour les RH et les candidats ;
-* rapide pour la consultation des demandes ;
-* maintenable ;
-* facilement déployable ;
-* versionné avec Git.
-
----
-
-### 6. Choix technologiques et architecture
-
-Les choix technologiques retenus pour le MVP sont détaillés dans le document suivant :
-
-- [`choix-technologiques.md`](./choix-technologiques.md)
-
-L’architecture technique du projet est détaillée dans le document suivant :
-
-- [`architecture-technique.md`](./architecture-technique.md)
-
-Résumé :
-
-| Partie | Choix |
+| Depuis | Vers |
 |---|---|
-| Frontend | Angular + PrimeNG Sakai |
-| Backend | Spring Boot |
-| Base de données | PostgreSQL |
-| Sécurité | Spring Security + JWT |
-| IA | Gemini / Vertex AI ou Groq |
-| Notification | Firebase FCM |
-| Email | Gmail / mailto |
-| Déploiement | Docker + Docker Compose |
+| `SOUMISE` | `EN_ETUDE`, `REFUSEE` |
+| `EN_ETUDE` | `TEST_TECHNIQUE`, `ENTRETIEN_FACE_A_FACE`, `REFUSEE` |
+| `TEST_TECHNIQUE` | `ENTRETIEN_FACE_A_FACE`, `ACCEPTEE`, `REFUSEE` |
+| `ENTRETIEN_FACE_A_FACE` | `ACCEPTEE`, `REFUSEE` |
+| `ACCEPTEE` | aucune |
+| `REFUSEE` | aucune |
 
----
+La répétition du même statut est acceptée, mais ne déclenche pas de nouvel email. Les statuts `ACCEPTEE` et `REFUSEE` sont finaux.
 
-### 7. Modèle de données
+La note de test est autorisée uniquement lorsque la demande est à l’étape `TEST_TECHNIQUE` ou `ENTRETIEN_FACE_A_FACE`.
 
-Le modèle de données est basé sur les classes suivantes :
+## 8. Notifications par email
 
-* Personne ;
-* Candidat ;
-* RH ;
-* OffreStage ;
-* Demande ;
-* StatutDemande.
+Lors d’un changement effectif de statut, le backend envoie un email simple au candidat via SMTP et Spring Mail.
 
-Le diagramme de classes doit être conservé sans modification.
+Un modèle statique existe pour :
 
-Point important :
+- `EN_ETUDE` ;
+- `TEST_TECHNIQUE` ;
+- `ENTRETIEN_FACE_A_FACE` ;
+- `ACCEPTEE` ;
+- `REFUSEE`.
 
-* `cvUrl` appartient à `Demande` ;
-* `lettreMotivationUrl` appartient à `Demande` ;
-* ces informations ne doivent pas être placées dans `Candidat`.
+Aucun email n’est envoyé pour `SOUMISE`, pour une adresse absente ou pour une mise à jour qui conserve le même statut. Une panne SMTP est journalisée mais ne doit jamais annuler le changement de statut.
 
----
+## 9. Contraintes non fonctionnelles
 
-### 8. Diagramme de classes
+- API REST JSON ;
+- accès contrôlé par JWT et rôle ;
+- validation des entrées avec Jakarta Validation ;
+- persistance transactionnelle avec Spring Data JPA et PostgreSQL ;
+- erreurs métier normalisées en HTTP `400` ou `404` ;
+- configuration externalisée par variables d’environnement ;
+- séparation entre contrôleurs, services, dépôts, entités, DTO et mappers.
 
-![Diagramme de classes](./diagramme-classes.png)
+## 10. Hors périmètre actuel
 
----
+Ne sont pas implémentés dans le backend actuel :
 
-### 9. Parcours utilisateur
+- analyse ou notation par intelligence artificielle ;
+- Firebase Cloud Messaging ;
+- table ou centre de notifications ;
+- envoi groupé ou préparation d’emails avec Gmail/`mailto` ;
+- téléversement et lecture automatique du contenu d’un CV ;
+- stockage d’une date d’entretien ;
+- création libre d’un compte RH ;
+- pagination et filtrage avancé des listes.
 
-#### 9.1 Parcours candidat
+## 11. Critères d’acceptation principaux
 
-1. Le candidat ouvre l’application.
-2. Il crée un compte ou se connecte.
-3. Il consulte les offres de stage.
-4. Il choisit une offre.
-5. Il dépose une demande.
-6. Il ajoute le lien Google Drive de son CV.
-7. Il ajoute une lettre de motivation si nécessaire.
-8. Il valide sa candidature.
-9. Il suit le statut de sa demande.
-
-#### 9.2 Parcours RH
-
-1. Le RH se connecte.
-2. Il accède au dashboard.
-3. Il crée ou consulte les offres.
-4. Il consulte les candidatures.
-5. Il lance l’analyse IA.
-6. Il consulte le score et le résumé.
-7. Il change le statut de la demande.
-8. Il sélectionne les candidats.
-9. Il ouvre Gmail avec les emails préparés.
-10. Il vérifie et envoie manuellement les emails.
-
----
-
-### 10. Interfaces principales
-
-#### Côté candidat
-
-* Page d’accueil ;
-* page inscription ;
-* page connexion ;
-* liste des offres ;
-* détail d’une offre ;
-* formulaire de candidature ;
-* suivi des demandes.
-
-#### Côté RH
-
-* Dashboard RH ;
-* gestion des offres ;
-* liste des candidatures ;
-* détail d’une candidature ;
-* analyse IA ;
-* changement de statut ;
-* sélection des candidats ;
-* préparation email.
-
----
-
-### 11. Automatisations prévues
-
-Le système peut automatiser :
-
-* la mise à jour du statut ;
-* l’envoi de notification au candidat ;
-* la génération d’un résumé IA ;
-* le calcul d’un score de compatibilité ;
-* la préparation d’un email RH ;
-* l’affichage des candidatures prioritaires.
-
----
-
-### 12. Tests attendus
-
-Les tests doivent vérifier :
-
-* la connexion à la base de données ;
-* la création des tables ;
-* l’inscription candidat ;
-* la création d’une offre ;
-* le dépôt d’une demande ;
-* l’ajout du lien CV ;
-* l’ajout optionnel de la lettre de motivation ;
-* la modification du statut ;
-* l’ouverture Gmail avec les destinataires sélectionnés ;
-* la réception d’une notification ;
-* l’analyse IA d’une candidature.
-
----
-
-### 13. Livrables attendus
-
-#### Fin de Journée 1
-
-* Maquette Figma mobile first ;
-* version web du prototype ;
-* mini design system ;
-* diagramme de classes ;
-* schéma de base de données ;
-* dépôt Git initialisé ;
-* connexion backend/base de données validée.
-
-#### Fin de Journée 2
-
-* Frontend fonctionnel ;
-* backend fonctionnel ;
-* base de données opérationnelle ;
-* workflow candidat complet ;
-* workflow RH complet ;
-* analyse IA simple ;
-* notification candidat ;
-* préparation email via Gmail ;
-* démo finale.
-
----
-
-### 14. Démo finale
-
-La démo doit montrer :
-
-1. Création ou consultation d’une offre de stage.
-2. Dépôt d’une candidature par un candidat.
-3. Ajout du lien CV Google Drive.
-4. Ajout optionnel de la lettre de motivation.
-5. Consultation de la demande par le RH.
-6. Analyse IA de la candidature.
-7. Changement du statut.
-8. Notification au candidat.
-9. Sélection de candidats.
-10. Ouverture Gmail avec email prérempli.
-
----
-
-### 15. Conclusion
-
-Cette plateforme RH RIF Stages permet de gérer simplement le workflow de candidature stage, depuis le dépôt de la demande jusqu’à la décision RH.
-
-Le MVP reste réaliste pour un challenge de 2 jours, tout en intégrant des fonctionnalités modernes : interface responsive, gestion RH, assistant IA, notification automatique et préparation d’email via Gmail.
+1. Un candidat peut s’inscrire, se connecter et gérer son profil.
+2. Un RH peut se connecter et gérer uniquement ses propres offres.
+3. Une offre expirée n’apparaît pas dans la liste publique.
+4. Un candidat authentifié peut déposer une seule demande par offre valide.
+5. Un candidat ne peut consulter et annuler que ses propres demandes.
+6. Une transition de statut invalide est refusée.
+7. Le changement de statut associe le RH traitant et tente l’envoi de l’email attendu.
+8. Un échec SMTP n’empêche pas la mise à jour de la demande.
+9. Une note hors de l’intervalle 0–100 ou ajoutée à une mauvaise étape est refusée.
+10. Les erreurs de validation et les ressources absentes produisent une réponse JSON explicite.
