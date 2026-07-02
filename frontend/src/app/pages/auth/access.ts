@@ -2,31 +2,82 @@ import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
-import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
 
 @Component({
     selector: 'app-access',
     standalone: true,
-    imports: [ButtonModule, RouterModule, RippleModule, AppFloatingConfigurator, ButtonModule],
-    template: ` <app-floating-configurator />
-        <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-screen overflow-hidden">
-            <div class="flex flex-col items-center justify-center">
-                <div style="border-radius: 56px; padding: 0.3rem; background: linear-gradient(180deg, rgba(247, 149, 48, 0.4) 10%, rgba(247, 149, 48, 0) 30%)">
-                    <div class="w-full bg-surface-0 dark:bg-surface-900 py-20 px-8 sm:px-20 flex flex-col items-center" style="border-radius: 53px">
-                        <div class="gap-4 flex flex-col items-center">
-                            <div class="flex justify-center items-center border-2 border-orange-500 rounded-full" style="width: 3.2rem; height: 3.2rem">
-                                <i class="text-orange-500 pi pi-fw pi-lock text-2xl!"></i>
-                            </div>
-                            <h1 class="text-surface-900 dark:text-surface-0 font-bold text-4xl lg:text-5xl mb-2">Access Denied</h1>
-                            <span class="text-muted-color mb-8">You do not have the necessary permisions. Please contact admins.</span>
-                            <img src="https://primefaces.org/cdn/templates/sakai/auth/asset-access.svg" alt="Access denied" class="mb-8" width="80%" />
-                            <div class="col-span-12 mt-8 text-center">
-                                <p-button label="Go to Dashboard" routerLink="/" severity="warn" />
-                            </div>
-                        </div>
-                    </div>
+    imports: [ButtonModule, RouterModule, RippleModule],
+    template: `
+        <div class="auth-status-page">
+            <div class="status-card access">
+                <div class="status-icon">
+                    <i class="pi pi-lock"></i>
+                </div>
+
+                <h1>Accès refusé</h1>
+                <p>Vous n’avez pas les permissions nécessaires pour accéder à cette page.</p>
+
+                <div class="status-actions">
+                    <p-button label="Retour accueil" routerLink="/" />
+                    <p-button label="Connexion" routerLink="/auth/login" [outlined]="true" />
                 </div>
             </div>
-        </div>`
+        </div>
+    `,
+    styles: [
+        `
+            .auth-status-page {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem;
+                background: var(--surface-ground);
+            }
+
+            .status-card {
+                width: min(520px, 100%);
+                background: var(--surface-card);
+                border: 1px solid var(--surface-border);
+                border-radius: 28px;
+                padding: 3rem;
+                text-align: center;
+                box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+            }
+
+            .status-icon {
+                width: 72px;
+                height: 72px;
+                margin: 0 auto 1.5rem;
+                border-radius: 22px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: color-mix(in srgb, #f97316, transparent 85%);
+                color: #f97316;
+                font-size: 2rem;
+            }
+
+            h1 {
+                margin: 0 0 0.75rem;
+                font-size: 2.2rem;
+                font-weight: 800;
+                color: var(--text-color);
+            }
+
+            p {
+                color: var(--text-color-secondary);
+                line-height: 1.7;
+                margin-bottom: 2rem;
+            }
+
+            .status-actions {
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+        `
+    ]
 })
 export class Access {}

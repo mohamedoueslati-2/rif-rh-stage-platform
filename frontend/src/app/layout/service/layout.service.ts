@@ -44,11 +44,11 @@ export class LayoutService {
 
     isDarkTheme = computed(() => this.layoutConfig().darkTheme);
 
-    getPrimary = computed(() => this.layoutConfig().primary);
+    getPrimary = computed(() => 'indigo');
 
     getSurface = computed(() => this.layoutConfig().surface);
 
-    isOverlay = computed(() => this.layoutConfig().menuMode === 'overlay');
+    isOverlay = computed(() => false);
 
     transitionComplete = signal<boolean>(false);
 
@@ -58,8 +58,9 @@ export class LayoutService {
         effect(() => {
             const config = this.layoutConfig();
 
-            if (!this.initialized || !config) {
+            if (!this.initialized) {
                 this.initialized = true;
+                this.toggleDarkMode(config);
                 return;
             }
 
@@ -68,64 +69,72 @@ export class LayoutService {
     }
 
     private handleDarkModeTransition(config: LayoutConfig): void {
-        const supportsViewTransition = 'startViewTransition' in document;
+        if (typeof document === 'undefined') {
+            return;
+        }
 
-        if (supportsViewTransition) {
-            this.startViewTransition(config);
+        const documentWithTransition = document as Document & {
+            startViewTransition?: (callback: () => void) => void;
+        };
+
+        if (documentWithTransition.startViewTransition) {
+            documentWithTransition.startViewTransition(() => {
+                this.toggleDarkMode(config);
+            });
         } else {
             this.toggleDarkMode(config);
         }
     }
 
-    private startViewTransition(config: LayoutConfig): void {
-        document.startViewTransition(() => {
-            this.toggleDarkMode(config);
-        });
-    }
-
     toggleDarkMode(config?: LayoutConfig): void {
-        const _config = config || this.layoutConfig();
+        if (typeof document === 'undefined') {
+            return;
+        }
 
-        if (_config.darkTheme) {
+        const currentConfig = config || this.layoutConfig();
+
+        if (currentConfig.darkTheme) {
             document.documentElement.classList.add('app-dark');
         } else {
             document.documentElement.classList.remove('app-dark');
         }
     }
 
-    onMenuToggle() {
+    onMenuToggle(): void {
         if (this.isDesktop()) {
             this.layoutState.update((prev) => ({
                 ...prev,
-                staticMenuDesktopInactive: !this.layoutState().staticMenuDesktopInactive
+                staticMenuDesktopInactive: !prev.staticMenuDesktopInactive,
+                overlayMenuActive: false
             }));
         } else {
             this.layoutState.update((prev) => ({
                 ...prev,
-                mobileMenuActive: !this.layoutState().mobileMenuActive
+                mobileMenuActive: !prev.mobileMenuActive,
+                overlayMenuActive: false
             }));
         }
     }
 
-    showConfigSidebar() {
-        this.layoutState.update((prev) => ({
-            ...prev,
-            configSidebarVisible: true
-        }));
-    }
-
-    hideConfigSidebar() {
+    showConfigSidebar(): void {
         this.layoutState.update((prev) => ({
             ...prev,
             configSidebarVisible: false
         }));
     }
 
-    isDesktop() {
-        return window.innerWidth > 991;
+    hideConfigSidebar(): void {
+        this.layoutState.update((prev) => ({
+            ...prev,
+            configSidebarVisible: false
+        }));
     }
 
-    isMobile() {
+    isDesktop(): boolean {
+        return typeof window !== 'undefined' && window.innerWidth > 991;
+    }
+
+    isMobile(): boolean {
         return !this.isDesktop();
     }
 }
