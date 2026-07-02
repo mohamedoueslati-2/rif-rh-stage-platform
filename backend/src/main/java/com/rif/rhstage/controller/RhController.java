@@ -1,15 +1,14 @@
 package com.rif.rhstage.controller;
 
-import com.rif.rhstage.dto.rh.CreateRhRequest;
+import com.rif.rhstage.dto.rh.PatchRhRequest;
 import com.rif.rhstage.dto.rh.RhResponse;
+import com.rif.rhstage.dto.rh.UpdateRhRequest;
 import com.rif.rhstage.service.RhService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -19,22 +18,27 @@ public class RhController {
 
     private final RhService rhService;
 
-    // Créer un compte RH
-    @PostMapping
-    public ResponseEntity<RhResponse> create(@Valid @RequestBody CreateRhRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(rhService.create(request));
+    // RH : récupérer mon profil
+    @GetMapping("/profil")
+    public ResponseEntity<RhResponse> getProfil(@RequestHeader("X-Rh-Id") UUID rhId) {
+        return ResponseEntity.ok(rhService.getProfil(rhId));
     }
 
-    // Récupérer tous les RH
-    @GetMapping
-    public ResponseEntity<List<RhResponse>> getAll() {
-        return ResponseEntity.ok(rhService.getAll());
+    // RH : modifier mon profil complet
+    @PutMapping("/profil")
+    public ResponseEntity<RhResponse> updateProfil(
+            @RequestHeader("X-Rh-Id") UUID rhId,
+            @Valid @RequestBody UpdateRhRequest request
+    ) {
+        return ResponseEntity.ok(rhService.updateProfil(rhId, request));
     }
 
-    // Récupérer un RH par ID
-    @GetMapping("/{id}")
-    public ResponseEntity<RhResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(rhService.getById(id));
+    // RH : modifier partiellement mon profil
+    @PatchMapping("/profil")
+    public ResponseEntity<RhResponse> patchProfil(
+            @RequestHeader("X-Rh-Id") UUID rhId,
+            @Valid @RequestBody PatchRhRequest request
+    ) {
+        return ResponseEntity.ok(rhService.patchProfil(rhId, request));
     }
 }
-

@@ -1,17 +1,16 @@
 package com.rif.rhstage.service;
 
-import com.rif.rhstage.dto.rh.CreateRhRequest;
+import com.rif.rhstage.dto.rh.PatchRhRequest;
 import com.rif.rhstage.dto.rh.RhResponse;
+import com.rif.rhstage.dto.rh.UpdateRhRequest;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface RhService {
 
-    RhResponse create(CreateRhRequest request);
+    RhResponse getProfil(UUID rhId);
 
-    List<RhResponse> getAll();
+    RhResponse updateProfil(UUID rhId, UpdateRhRequest request);
 
-    RhResponse getById(UUID id);
+    RhResponse patchProfil(UUID rhId, PatchRhRequest request);
 }
-

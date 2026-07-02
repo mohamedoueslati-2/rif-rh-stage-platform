@@ -2,9 +2,8 @@ package com.rif.rhstage.dto.rh;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
-public record CreateRhRequest(
+public record UpdateRhRequest(
 
         @NotBlank
         String nom,
@@ -16,13 +15,8 @@ public record CreateRhRequest(
         @Email
         String email,
 
-        @NotBlank
-        @Size(min = 6)
-        String motDePasse,
-
         String nomAffichage,
 
         String contactProfessionnel
 ) {
 }
-

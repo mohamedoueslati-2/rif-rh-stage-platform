@@ -1,7 +1,8 @@
 package com.rif.rhstage.service.impl;
 
-import com.rif.rhstage.dto.rh.CreateRhRequest;
+import com.rif.rhstage.dto.rh.PatchRhRequest;
 import com.rif.rhstage.dto.rh.RhResponse;
+import com.rif.rhstage.dto.rh.UpdateRhRequest;
 import com.rif.rhstage.entity.RH;
 import com.rif.rhstage.exception.BadRequestException;
 import com.rif.rhstage.exception.ResourceNotFoundException;
@@ -13,9 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,121 +33,163 @@ class RhServiceImplTest {
     @Mock
     private RhMapper rhMapper;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
     @InjectMocks
     private RhServiceImpl rhService;
 
     @Test
-    void create_shouldCreateRh_whenEmailNotUsed() {
-        CreateRhRequest request = new CreateRhRequest(
+    void getProfil_shouldReturnRhProfile_whenRhExists() {
+        UUID rhId = UUID.randomUUID();
+
+        RH rh = new RH();
+
+        RhResponse response = new RhResponse(
+                rhId,
                 "RH",
                 "Admin",
                 "rh@test.com",
-                "123456",
                 "RH RIF",
-                "contact@rif.com"
+                "contact@rif.com",
+                null
+        );
+
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(rh));
+        when(rhMapper.toResponse(rh)).thenReturn(response);
+
+        RhResponse result = rhService.getProfil(rhId);
+
+        assertEquals(rhId, result.id());
+        assertEquals("rh@test.com", result.email());
+    }
+
+    @Test
+    void getProfil_shouldThrowNotFound_whenRhDoesNotExist() {
+        UUID rhId = UUID.randomUUID();
+
+        when(rhRepository.findById(rhId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> rhService.getProfil(rhId));
+    }
+
+    @Test
+    void updateProfil_shouldUpdateFullProfile_whenEmailNotUsedByAnotherUser() {
+        UUID rhId = UUID.randomUUID();
+
+        UpdateRhRequest request = new UpdateRhRequest(
+                "RH",
+                "Manager",
+                "new-rh@test.com",
+                "Manager RH",
+                "manager@rif.com"
         );
 
         RH rh = new RH();
         RH savedRh = new RH();
 
         RhResponse response = new RhResponse(
-                UUID.randomUUID(),
+                rhId,
                 "RH",
-                "Admin",
-                "rh@test.com",
-                "RH RIF",
-                "contact@rif.com",
+                "Manager",
+                "new-rh@test.com",
+                "Manager RH",
+                "manager@rif.com",
                 null
         );
 
-        when(personneRepository.existsByEmail(request.email())).thenReturn(false);
-        when(passwordEncoder.encode(request.motDePasse())).thenReturn("hashed-password");
-        when(rhMapper.toEntity(request, "hashed-password")).thenReturn(rh);
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(rh));
+        when(personneRepository.existsByEmailAndIdNot(request.email(), rhId)).thenReturn(false);
+        doNothing().when(rhMapper).updateEntity(rh, request);
         when(rhRepository.save(rh)).thenReturn(savedRh);
         when(rhMapper.toResponse(savedRh)).thenReturn(response);
 
-        RhResponse result = rhService.create(request);
+        RhResponse result = rhService.updateProfil(rhId, request);
 
-        assertNotNull(result);
-        assertEquals("rh@test.com", result.email());
+        assertEquals("new-rh@test.com", result.email());
+        assertEquals("Manager", result.prenom());
 
+        verify(rhMapper).updateEntity(rh, request);
         verify(rhRepository).save(rh);
     }
 
     @Test
-    void create_shouldThrowBadRequest_whenEmailAlreadyUsed() {
-        CreateRhRequest request = new CreateRhRequest(
+    void updateProfil_shouldThrowBadRequest_whenEmailUsedByAnotherUser() {
+        UUID rhId = UUID.randomUUID();
+
+        UpdateRhRequest request = new UpdateRhRequest(
                 "RH",
                 "Admin",
-                "rh@test.com",
-                "123456",
+                "used@test.com",
                 "RH RIF",
                 "contact@rif.com"
         );
 
-        when(personneRepository.existsByEmail(request.email())).thenReturn(true);
+        RH rh = new RH();
 
-        assertThrows(BadRequestException.class, () -> rhService.create(request));
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(rh));
+        when(personneRepository.existsByEmailAndIdNot(request.email(), rhId)).thenReturn(true);
+
+        assertThrows(BadRequestException.class, () -> rhService.updateProfil(rhId, request));
 
         verify(rhRepository, never()).save(any());
     }
 
     @Test
-    void getAll_shouldReturnAllRh() {
+    void patchProfil_shouldPatchProfile_whenValidData() {
+        UUID rhId = UUID.randomUUID();
+
+        PatchRhRequest request = new PatchRhRequest(
+                null,
+                "Admin Updated",
+                null,
+                "RH Updated",
+                null
+        );
+
         RH rh = new RH();
+        RH savedRh = new RH();
 
         RhResponse response = new RhResponse(
-                UUID.randomUUID(),
+                rhId,
                 "RH",
-                "Admin",
+                "Admin Updated",
                 "rh@test.com",
-                "RH RIF",
+                "RH Updated",
                 "contact@rif.com",
                 null
         );
 
-        when(rhRepository.findAll()).thenReturn(List.of(rh));
-        when(rhMapper.toResponse(rh)).thenReturn(response);
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(rh));
+        doNothing().when(rhMapper).patchEntity(rh, request);
+        when(rhRepository.save(rh)).thenReturn(savedRh);
+        when(rhMapper.toResponse(savedRh)).thenReturn(response);
 
-        List<RhResponse> result = rhService.getAll();
+        RhResponse result = rhService.patchProfil(rhId, request);
 
-        assertEquals(1, result.size());
-        assertEquals("Admin", result.get(0).prenom());
+        assertEquals("Admin Updated", result.prenom());
+        assertEquals("RH Updated", result.nomAffichage());
+
+        verify(rhMapper).patchEntity(rh, request);
+        verify(rhRepository).save(rh);
     }
 
     @Test
-    void getById_shouldReturnRh_whenExists() {
-        UUID id = UUID.randomUUID();
-        RH rh = new RH();
+    void patchProfil_shouldThrowBadRequest_whenEmailUsedByAnotherUser() {
+        UUID rhId = UUID.randomUUID();
 
-        RhResponse response = new RhResponse(
-                id,
-                "RH",
-                "Admin",
-                "rh@test.com",
-                "RH RIF",
-                "contact@rif.com",
+        PatchRhRequest request = new PatchRhRequest(
+                null,
+                null,
+                "used@test.com",
+                null,
                 null
         );
 
-        when(rhRepository.findById(id)).thenReturn(Optional.of(rh));
-        when(rhMapper.toResponse(rh)).thenReturn(response);
+        RH rh = new RH();
 
-        RhResponse result = rhService.getById(id);
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(rh));
+        when(personneRepository.existsByEmailAndIdNot(request.email(), rhId)).thenReturn(true);
 
-        assertEquals(id, result.id());
-    }
+        assertThrows(BadRequestException.class, () -> rhService.patchProfil(rhId, request));
 
-    @Test
-    void getById_shouldThrowNotFound_whenRhDoesNotExist() {
-        UUID id = UUID.randomUUID();
-
-        when(rhRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> rhService.getById(id));
+        verify(rhRepository, never()).save(any());
     }
 }
-
