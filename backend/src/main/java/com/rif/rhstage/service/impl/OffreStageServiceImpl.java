@@ -133,8 +133,18 @@ public class OffreStageServiceImpl implements OffreStageService {
     }
 
     private void validateDates(LocalDate dateDebut, LocalDate dateExpiration) {
-        if (dateExpiration.isBefore(dateDebut)) {
-            throw new BadRequestException("La date d'expiration doit être après la date de début");
+        LocalDate today = LocalDate.now();
+
+        if (dateDebut.isBefore(today)) {
+            throw new BadRequestException("La date de début ne peut pas être dans le passé");
+        }
+
+        if (dateExpiration.isBefore(today)) {
+            throw new BadRequestException("La date d'expiration ne peut pas être dans le passé");
+        }
+
+        if (dateExpiration.isAfter(dateDebut)) {
+            throw new BadRequestException("La date d'expiration doit être avant ou égale à la date de début");
         }
     }
 }

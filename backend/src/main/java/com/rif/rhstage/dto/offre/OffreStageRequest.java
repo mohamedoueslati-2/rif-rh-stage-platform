@@ -26,9 +26,11 @@ public record OffreStageRequest(
         String duree,
 
         @NotNull
+        @FutureOrPresent
         LocalDate dateDebut,
 
         @NotNull
+        @FutureOrPresent
         LocalDate dateExpiration
 ) {
 }
