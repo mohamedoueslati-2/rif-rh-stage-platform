@@ -12,5 +12,7 @@ public interface OffreStageRepository extends JpaRepository<OffreStage, UUID> {
     List<OffreStage> findByRhCreateurId(UUID rhCreateurId);
 
     List<OffreStage> findByDateExpirationGreaterThanEqual(LocalDate today);
+
+    boolean existsByReferenceOffre(String referenceOffre);
 }
 
