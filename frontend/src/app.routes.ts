@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
-import { Dashboard } from './app/pages/dashboard/dashboard';
 import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
@@ -15,6 +14,8 @@ import { CandidateOffers } from './app/pages/candidat/offers/candidate-offers';
 import { CandidateApplications } from './app/pages/candidat/applications/candidate-applications';
 import { RhApplications } from './app/pages/rh/applications/rh-applications';
 import { CandidateProfile } from './app/pages/candidat/profile/candidate-profile';
+import { RhDashboard } from './app/pages/rh/dashboard/rh-dashboard';
+import { CandidateDashboard } from './app/pages/candidat/dashboard/candidate-dashboard';
 
 export const appRoutes: Routes = [
     { path: '', component: Landing, pathMatch: 'full' },
@@ -26,11 +27,11 @@ export const appRoutes: Routes = [
         component: AppLayout,
         canActivate: [authGuard],
         children: [
-            { path: 'dashboard', component: Dashboard, canActivate: [roleGuard], data: { roles: ['RH'] } },
+            { path: 'dashboard', component: RhDashboard, canActivate: [roleGuard], data: { roles: ['RH'] } },
             { path: 'rh/offres', component: RhOffers, canActivate: [roleGuard], data: { roles: ['RH'] } },
             { path: 'rh/demandes', component: RhApplications, canActivate: [roleGuard], data: { roles: ['RH'] } },
             { path: 'rh/profile', component: RhProfile, canActivate: [roleGuard], data: { roles: ['RH'] } },
-            { path: 'candidat/dashboard', component: BusinessPage, canActivate: [roleGuard], data: { roles: ['CANDIDAT'], title: 'Dashboard candidat' } },
+            { path: 'candidat/dashboard', component: CandidateDashboard, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
             { path: 'candidat/offres', component: CandidateOffers, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
             { path: 'candidat/mes-demandes', component: CandidateApplications, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
             { path: 'candidat/profile', component: CandidateProfile, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
