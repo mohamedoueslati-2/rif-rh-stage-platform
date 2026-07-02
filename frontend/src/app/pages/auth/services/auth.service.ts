@@ -80,6 +80,10 @@ export class AuthService {
         return localStorage.getItem(this.emailKey);
     }
 
+    updateStoredEmail(email: string): void {
+        localStorage.setItem(this.emailKey, email);
+    }
+
     redirectByRole(): Promise<boolean> {
         const destination = this.getRole() === 'RH' ? '/dashboard' : '/candidat/dashboard';
         return this.router.navigate([destination]);

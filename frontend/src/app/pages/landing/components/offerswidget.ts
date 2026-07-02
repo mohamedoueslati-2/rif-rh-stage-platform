@@ -1,24 +1,13 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
-
-interface InternshipOffer {
-    id: string;
-    referenceOffre: string;
-    titre: string;
-    description: string;
-    domaine: string;
-    lieu: string;
-    duree: string;
-    dateDebut: string;
-    dateExpiration: string;
-}
+import { InternshipOffer, PublicOfferService } from '../services/public-offer.service';
+import { finalize } from 'rxjs';
 
 @Component({
     selector: 'offers-widget',
@@ -40,19 +29,19 @@ interface InternshipOffer {
                     <label for="offer-search">Recherche</label>
                     <div class="input-with-icon">
                         <i class="pi pi-search"></i>
-                        <input pInputText id="offer-search" name="search" [(ngModel)]="search" placeholder="Développeur web, IA, DevOps..." />
+                        <input pInputText id="offer-search" name="search" [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Développeur web, IA, DevOps..." />
                     </div>
                 </div>
                 <div class="filter-field">
                     <label for="offer-domain">Domaine</label>
-                    <select id="offer-domain" name="domain" [(ngModel)]="domain">
+                    <select id="offer-domain" name="domain" [(ngModel)]="domain" (ngModelChange)="applyFilters()">
                         <option value="">Tous les domaines</option>
                         @for (item of domains; track item) { <option [value]="item">{{ item }}</option> }
                     </select>
                 </div>
                 <div class="filter-field">
                     <label for="offer-location">Lieu</label>
-                    <select id="offer-location" name="location" [(ngModel)]="location">
+                    <select id="offer-location" name="location" [(ngModel)]="location" (ngModelChange)="applyFilters()">
                         <option value="">Tous les lieux</option>
                         @for (item of locations; track item) { <option [value]="item">{{ item }}</option> }
                     </select>
@@ -95,9 +84,10 @@ interface InternshipOffer {
                             <div class="offer-meta">
                                 <span><i class="pi pi-map-marker"></i>{{ offer.lieu }}</span>
                                 <span><i class="pi pi-clock"></i>{{ offer.duree }}</span>
+                                <span><i class="pi pi-calendar"></i>Début : {{ offer.dateDebut | date: 'dd/MM/yyyy' }}</span>
                             </div>
                             <div class="offer-footer">
-                                <span>Jusqu’au {{ offer.dateExpiration | date: 'dd/MM/yyyy' }}</span>
+                                <span>Expiration : {{ offer.dateExpiration | date: 'dd/MM/yyyy' }}</span>
                                 <a pButton routerLink="/auth/login" label="Postuler" icon="pi pi-arrow-right" iconPos="right" [text]="true"></a>
                             </div>
                         </article>
@@ -142,7 +132,8 @@ interface InternshipOffer {
     `
 })
 export class OffersWidget implements OnInit {
-    private readonly http = inject(HttpClient);
+    private readonly offerService = inject(PublicOfferService);
+    private readonly changeDetector = inject(ChangeDetectorRef);
     allOffers: InternshipOffer[] = [];
     offers: InternshipOffer[] = [];
     domains: string[] = [];
@@ -158,7 +149,7 @@ export class OffersWidget implements OnInit {
     loadOffers(): void {
         this.loading = true;
         this.errorMessage = '';
-        this.http.get<InternshipOffer[]>('/api/offres').subscribe({
+        this.offerService.getAll().pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
             next: (offers) => {
                 this.allOffers = offers;
                 this.domains = this.uniqueValues(offers.map((offer) => offer.domaine));

@@ -184,7 +184,7 @@ export class AppMenu {
                 items: [
                     { label: 'Offres Stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/candidat/offres'] },
                     { label: 'Mes Demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/candidat/mes-demandes'] },
-                    { label: 'Profile', icon: 'pi pi-fw pi-user', routerLink: ['/candidat/profile'] },
+                    { label: 'Profil candidat', icon: 'pi pi-fw pi-id-card', routerLink: ['/candidat/profile'] },
                     { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
                 ]
             };
@@ -195,7 +195,7 @@ export class AppMenu {
             items: [
                 { label: 'Offres Stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/rh/offres'] },
                 { label: 'Demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/rh/demandes'] },
-                { label: 'Profile', icon: 'pi pi-fw pi-user', routerLink: ['/rh/profile'] },
+                { label: 'Profil RH', icon: 'pi pi-fw pi-id-card', routerLink: ['/rh/profile'] },
                 { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
             ]
         };

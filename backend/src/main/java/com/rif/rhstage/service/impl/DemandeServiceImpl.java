@@ -211,7 +211,6 @@ public class DemandeServiceImpl implements DemandeService {
 
             case EN_ETUDE ->
                     newStatut == StatutDemande.TEST_TECHNIQUE
-                            || newStatut == StatutDemande.ENTRETIEN_FACE_A_FACE
                             || newStatut == StatutDemande.REFUSEE;
 
             case TEST_TECHNIQUE ->
