@@ -1,17 +1,21 @@
 package com.rif.rhstage.service;
 
-import com.rif.rhstage.dto.candidat.CandidatResponse;
-import com.rif.rhstage.dto.candidat.CreateCandidatRequest;
+import com.rif.rhstage.dto.candidat.*;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface CandidatService {
 
-    CandidatResponse create(CreateCandidatRequest request);
+    CandidatResponse register(CreateCandidatRequest request);
 
-    List<CandidatResponse> getAll();
+    CandidatResponse getProfil(UUID candidatId);
 
-    CandidatResponse getById(UUID id);
+    CandidatResponse updateProfil(UUID candidatId, UpdateCandidatRequest request);
+
+    CandidatResponse patchProfil(UUID candidatId, PatchCandidatRequest request);
+
+    void changePassword(UUID candidatId, ChangeCandidatPasswordRequest request);
+
+    void deleteProfil(UUID candidatId);
 }
 

@@ -17,6 +17,8 @@ public interface DemandeRepository extends JpaRepository<Demande, UUID> {
 
     List<Demande> findByStatut(StatutDemande statut);
 
+    boolean existsByCandidatId(UUID candidatId);
+
     boolean existsByCandidatIdAndOffreStageId(UUID candidatId, UUID offreStageId);
 
     boolean existsByReferenceDemande(String referenceDemande);

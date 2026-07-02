@@ -11,5 +11,7 @@ public interface PersonneRepository extends JpaRepository<Personne, UUID> {
     Optional<Personne> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    boolean existsByEmailAndIdNot(String email, UUID id);
 }
 
