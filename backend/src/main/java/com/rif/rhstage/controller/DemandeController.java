@@ -5,11 +5,14 @@ import com.rif.rhstage.dto.demande.DemandeResponse;
 import com.rif.rhstage.dto.demande.UpdateCommentaireRhRequest;
 import com.rif.rhstage.dto.demande.UpdateNoteTestRequest;
 import com.rif.rhstage.dto.demande.UpdateStatutDemandeRequest;
+import com.rif.rhstage.security.AppUserDetails;
 import com.rif.rhstage.service.DemandeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,83 +25,83 @@ public class DemandeController {
 
     private final DemandeService demandeService;
 
-    // Candidat : déposer une demande pour une offre
     @PostMapping("/offre/{offreId}")
+    @PreAuthorize("hasRole('CANDIDAT')")
     public ResponseEntity<DemandeResponse> create(
-            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @PathVariable UUID offreId,
             @Valid @RequestBody DemandeRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(demandeService.create(candidatId, offreId, request));
+                .body(demandeService.create(currentUser.getId(), offreId, request));
     }
 
-    // Candidat : voir mes demandes
     @GetMapping("/me")
+    @PreAuthorize("hasRole('CANDIDAT')")
     public ResponseEntity<List<DemandeResponse>> getMyDemandes(
-            @RequestHeader("X-Candidat-Id") UUID candidatId
+            @AuthenticationPrincipal AppUserDetails currentUser
     ) {
-        return ResponseEntity.ok(demandeService.getMyDemandes(candidatId));
+        return ResponseEntity.ok(demandeService.getMyDemandes(currentUser.getId()));
     }
 
-    // Candidat : voir le détail de ma demande
     @GetMapping("/me/{id}")
+    @PreAuthorize("hasRole('CANDIDAT')")
     public ResponseEntity<DemandeResponse> getMyDemandeById(
-            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @PathVariable UUID id
     ) {
-        return ResponseEntity.ok(demandeService.getMyDemandeById(candidatId, id));
+        return ResponseEntity.ok(demandeService.getMyDemandeById(currentUser.getId(), id));
     }
 
-    // RH : voir toutes les demandes
     @GetMapping
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<List<DemandeResponse>> getAll() {
         return ResponseEntity.ok(demandeService.getAll());
     }
 
-    // RH : voir détail d'une demande
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<DemandeResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(demandeService.getById(id));
     }
 
-    // RH : changer le statut d'une demande
     @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<DemandeResponse> updateStatut(
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateStatutDemandeRequest request
     ) {
-        return ResponseEntity.ok(demandeService.updateStatut(id, rhId, request));
+        return ResponseEntity.ok(demandeService.updateStatut(id, currentUser.getId(), request));
     }
 
-    // RH : ajouter un commentaire RH
     @PatchMapping("/{id}/commentaire")
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<DemandeResponse> updateCommentaire(
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateCommentaireRhRequest request
     ) {
-        return ResponseEntity.ok(demandeService.updateCommentaire(id, rhId, request));
+        return ResponseEntity.ok(demandeService.updateCommentaire(id, currentUser.getId(), request));
     }
 
-    // RH : ajouter la note du test technique
     @PatchMapping("/{id}/note-test")
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<DemandeResponse> updateNoteTest(
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateNoteTestRequest request
     ) {
-        return ResponseEntity.ok(demandeService.updateNoteTest(id, rhId, request));
+        return ResponseEntity.ok(demandeService.updateNoteTest(id, currentUser.getId(), request));
     }
 
-    // Candidat : annuler sa demande
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('CANDIDAT')")
     public ResponseEntity<Void> delete(
-            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @PathVariable UUID id
     ) {
-        demandeService.delete(id, candidatId);
+        demandeService.delete(id, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 }

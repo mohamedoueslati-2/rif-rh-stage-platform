@@ -3,42 +3,43 @@ package com.rif.rhstage.controller;
 import com.rif.rhstage.dto.rh.PatchRhRequest;
 import com.rif.rhstage.dto.rh.RhResponse;
 import com.rif.rhstage.dto.rh.UpdateRhRequest;
+import com.rif.rhstage.security.AppUserDetails;
 import com.rif.rhstage.service.RhService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/rh")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('RH')")
 public class RhController {
 
     private final RhService rhService;
 
-    // RH : récupérer mon profil
     @GetMapping("/profil")
-    public ResponseEntity<RhResponse> getProfil(@RequestHeader("X-Rh-Id") UUID rhId) {
-        return ResponseEntity.ok(rhService.getProfil(rhId));
+    public ResponseEntity<RhResponse> getProfil(
+            @AuthenticationPrincipal AppUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(rhService.getProfil(currentUser.getId()));
     }
 
-    // RH : modifier mon profil complet
     @PutMapping("/profil")
     public ResponseEntity<RhResponse> updateProfil(
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @Valid @RequestBody UpdateRhRequest request
     ) {
-        return ResponseEntity.ok(rhService.updateProfil(rhId, request));
+        return ResponseEntity.ok(rhService.updateProfil(currentUser.getId(), request));
     }
 
-    // RH : modifier partiellement mon profil
     @PatchMapping("/profil")
     public ResponseEntity<RhResponse> patchProfil(
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @Valid @RequestBody PatchRhRequest request
     ) {
-        return ResponseEntity.ok(rhService.patchProfil(rhId, request));
+        return ResponseEntity.ok(rhService.patchProfil(currentUser.getId(), request));
     }
 }

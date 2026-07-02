@@ -4,11 +4,14 @@ import com.rif.rhstage.dto.offre.OffreStageRequest;
 import com.rif.rhstage.dto.offre.OffreStageResponse;
 import com.rif.rhstage.dto.offre.PatchOffreStageRequest;
 import com.rif.rhstage.dto.offre.UpdateOffreStageRequest;
+import com.rif.rhstage.security.AppUserDetails;
 import com.rif.rhstage.service.OffreStageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,11 +25,12 @@ public class OffreStageController {
     private final OffreStageService offreStageService;
 
     @PostMapping
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<OffreStageResponse> create(
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @Valid @RequestBody OffreStageRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(offreStageService.create(rhId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(offreStageService.create(currentUser.getId(), request));
     }
 
     @GetMapping
@@ -40,29 +44,32 @@ public class OffreStageController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<OffreStageResponse> update(
             @PathVariable UUID id,
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @Valid @RequestBody UpdateOffreStageRequest request
     ) {
-        return ResponseEntity.ok(offreStageService.update(id, rhId, request));
+        return ResponseEntity.ok(offreStageService.update(id, currentUser.getId(), request));
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<OffreStageResponse> patch(
             @PathVariable UUID id,
-            @RequestHeader("X-Rh-Id") UUID rhId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @RequestBody PatchOffreStageRequest request
     ) {
-        return ResponseEntity.ok(offreStageService.patch(id, rhId, request));
+        return ResponseEntity.ok(offreStageService.patch(id, currentUser.getId(), request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('RH')")
     public ResponseEntity<Void> delete(
             @PathVariable UUID id,
-            @RequestHeader("X-Rh-Id") UUID rhId
+            @AuthenticationPrincipal AppUserDetails currentUser
     ) {
-        offreStageService.delete(id, rhId);
+        offreStageService.delete(id, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,14 +1,15 @@
 package com.rif.rhstage.controller;
 
 import com.rif.rhstage.dto.candidat.*;
+import com.rif.rhstage.security.AppUserDetails;
 import com.rif.rhstage.service.CandidatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/candidats")
@@ -23,38 +24,47 @@ public class CandidatController {
     }
 
     @GetMapping("/profil")
-    public ResponseEntity<CandidatResponse> getProfil(@RequestHeader("X-Candidat-Id") UUID candidatId) {
-        return ResponseEntity.ok(candidatService.getProfil(candidatId));
+    @PreAuthorize("hasRole('CANDIDAT')")
+    public ResponseEntity<CandidatResponse> getProfil(
+            @AuthenticationPrincipal AppUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(candidatService.getProfil(currentUser.getId()));
     }
 
     @PutMapping("/profil")
+    @PreAuthorize("hasRole('CANDIDAT')")
     public ResponseEntity<CandidatResponse> updateProfil(
-            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @Valid @RequestBody UpdateCandidatRequest request
     ) {
-        return ResponseEntity.ok(candidatService.updateProfil(candidatId, request));
+        return ResponseEntity.ok(candidatService.updateProfil(currentUser.getId(), request));
     }
 
     @PatchMapping("/profil")
+    @PreAuthorize("hasRole('CANDIDAT')")
     public ResponseEntity<CandidatResponse> patchProfil(
-            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @Valid @RequestBody PatchCandidatRequest request
     ) {
-        return ResponseEntity.ok(candidatService.patchProfil(candidatId, request));
+        return ResponseEntity.ok(candidatService.patchProfil(currentUser.getId(), request));
     }
 
     @PutMapping("/profil/password")
+    @PreAuthorize("hasRole('CANDIDAT')")
     public ResponseEntity<Void> changePassword(
-            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @AuthenticationPrincipal AppUserDetails currentUser,
             @Valid @RequestBody ChangeCandidatPasswordRequest request
     ) {
-        candidatService.changePassword(candidatId, request);
+        candidatService.changePassword(currentUser.getId(), request);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/profil")
-    public ResponseEntity<Void> deleteProfil(@RequestHeader("X-Candidat-Id") UUID candidatId) {
-        candidatService.deleteProfil(candidatId);
+    @PreAuthorize("hasRole('CANDIDAT')")
+    public ResponseEntity<Void> deleteProfil(
+            @AuthenticationPrincipal AppUserDetails currentUser
+    ) {
+        candidatService.deleteProfil(currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 }
