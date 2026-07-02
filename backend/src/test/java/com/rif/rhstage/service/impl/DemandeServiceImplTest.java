@@ -64,6 +64,7 @@ class DemandeServiceImplTest {
 
         OffreStage offre = new OffreStage();
         offre.setDateExpiration(LocalDate.now().plusDays(10));
+        offre.setDateDebut(LocalDate.now().plusDays(5));
 
         Demande demande = new Demande();
         Demande savedDemande = new Demande();
@@ -169,6 +170,23 @@ class DemandeServiceImplTest {
 
         assertThrows(BadRequestException.class, () -> demandeService.create(candidatId, offreId, request));
 
+        verify(demandeRepository, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowBadRequest_whenStageAlreadyStarted() {
+        UUID candidatId = UUID.randomUUID();
+        UUID offreId = UUID.randomUUID();
+        DemandeRequest request = new DemandeRequest("https://drive.google.com/cv.pdf", null);
+        OffreStage offre = new OffreStage();
+        offre.setDateExpiration(LocalDate.now().plusDays(10));
+        offre.setDateDebut(LocalDate.now().minusDays(1));
+
+        when(demandeRepository.existsByCandidatIdAndOffreStageId(candidatId, offreId)).thenReturn(false);
+        when(candidatRepository.findById(candidatId)).thenReturn(Optional.of(new Candidat()));
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+
+        assertThrows(BadRequestException.class, () -> demandeService.create(candidatId, offreId, request));
         verify(demandeRepository, never()).save(any());
     }
 
@@ -302,6 +320,7 @@ class DemandeServiceImplTest {
         UpdateStatutDemandeRequest request = new UpdateStatutDemandeRequest(StatutDemande.EN_ETUDE);
 
         Demande demande = new Demande();
+        demande.setStatut(StatutDemande.SOUMISE);
         RH rh = new RH();
         Demande savedDemande = new Demande();
 
@@ -339,6 +358,38 @@ class DemandeServiceImplTest {
         assertEquals(StatutDemande.EN_ETUDE, result.statut());
 
         verify(demandeRepository).save(demande);
+    }
+
+    @Test
+    void updateStatut_shouldRejectInvalidTransition() {
+        UUID demandeId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+        Demande demande = new Demande();
+        demande.setStatut(StatutDemande.SOUMISE);
+
+        when(demandeRepository.findById(demandeId)).thenReturn(Optional.of(demande));
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(new RH()));
+
+        assertThrows(BadRequestException.class, () -> demandeService.updateStatut(
+                demandeId, rhId, new UpdateStatutDemandeRequest(StatutDemande.ACCEPTEE)
+        ));
+        verify(demandeRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatut_shouldRejectTransitionFromFinalStatus() {
+        UUID demandeId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+        Demande demande = new Demande();
+        demande.setStatut(StatutDemande.ACCEPTEE);
+
+        when(demandeRepository.findById(demandeId)).thenReturn(Optional.of(demande));
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(new RH()));
+
+        assertThrows(BadRequestException.class, () -> demandeService.updateStatut(
+                demandeId, rhId, new UpdateStatutDemandeRequest(StatutDemande.REFUSEE)
+        ));
+        verify(demandeRepository, never()).save(any());
     }
 
     @Test
@@ -396,6 +447,7 @@ class DemandeServiceImplTest {
         UpdateNoteTestRequest request = new UpdateNoteTestRequest(87.5);
 
         Demande demande = new Demande();
+        demande.setStatut(StatutDemande.TEST_TECHNIQUE);
         Demande savedDemande = new Demande();
 
         DemandeResponse response = new DemandeResponse(
@@ -432,6 +484,22 @@ class DemandeServiceImplTest {
         assertEquals(87.5, result.noteTestTechnique());
 
         verify(demandeRepository).save(demande);
+    }
+
+    @Test
+    void updateNoteTest_shouldRejectNoteBeforeTechnicalTest() {
+        UUID demandeId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+        Demande demande = new Demande();
+        demande.setStatut(StatutDemande.EN_ETUDE);
+
+        when(demandeRepository.findById(demandeId)).thenReturn(Optional.of(demande));
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(new RH()));
+
+        assertThrows(BadRequestException.class, () -> demandeService.updateNoteTest(
+                demandeId, rhId, new UpdateNoteTestRequest(87.5)
+        ));
+        verify(demandeRepository, never()).save(any());
     }
 
     @Test

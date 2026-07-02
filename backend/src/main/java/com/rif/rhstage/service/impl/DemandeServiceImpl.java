@@ -51,9 +51,7 @@ public class DemandeServiceImpl implements DemandeService {
         OffreStage offreStage = offreStageRepository.findById(offreId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offre de stage introuvable"));
 
-        if (offreStage.getDateExpiration().isBefore(LocalDate.now())) {
-            throw new BadRequestException("Cette offre est expirée");
-        }
+        validateOffreCanReceiveDemande(offreStage);
 
         String referenceDemande = generateReferenceDemande();
 
@@ -115,6 +113,8 @@ public class DemandeServiceImpl implements DemandeService {
         Demande demande = findDemandeById(id);
         RH rhTraitant = findRhById(rhId);
 
+        validateStatutTransition(demande.getStatut(), request.statut());
+
         demande.setStatut(request.statut());
         demande.setRhTraitant(rhTraitant);
 
@@ -145,6 +145,8 @@ public class DemandeServiceImpl implements DemandeService {
         Demande demande = findDemandeById(id);
         RH rhTraitant = findRhById(rhId);
 
+        validateCanUpdateNoteTest(demande.getStatut());
+
         demande.setNoteTestTechnique(request.noteTestTechnique());
         demande.setRhTraitant(rhTraitant);
 
@@ -165,6 +167,61 @@ public class DemandeServiceImpl implements DemandeService {
         }
 
         demandeRepository.delete(demande);
+    }
+
+    private void validateOffreCanReceiveDemande(OffreStage offreStage) {
+        LocalDate today = LocalDate.now();
+
+        if (offreStage.getDateExpiration().isBefore(today)) {
+            throw new BadRequestException("Cette offre est expirée");
+        }
+
+        if (offreStage.getDateDebut().isBefore(today)) {
+            throw new BadRequestException("Le stage a déjà commencé");
+        }
+    }
+
+    private void validateStatutTransition(StatutDemande currentStatut, StatutDemande newStatut) {
+        if (currentStatut == newStatut) {
+            return;
+        }
+
+        boolean validTransition = switch (currentStatut) {
+            case SOUMISE ->
+                    newStatut == StatutDemande.EN_ETUDE
+                            || newStatut == StatutDemande.REFUSEE;
+
+            case EN_ETUDE ->
+                    newStatut == StatutDemande.TEST_TECHNIQUE
+                            || newStatut == StatutDemande.ENTRETIEN_FACE_A_FACE
+                            || newStatut == StatutDemande.REFUSEE;
+
+            case TEST_TECHNIQUE ->
+                    newStatut == StatutDemande.ENTRETIEN_FACE_A_FACE
+                            || newStatut == StatutDemande.ACCEPTEE
+                            || newStatut == StatutDemande.REFUSEE;
+
+            case ENTRETIEN_FACE_A_FACE ->
+                    newStatut == StatutDemande.ACCEPTEE
+                            || newStatut == StatutDemande.REFUSEE;
+
+            case ACCEPTEE, REFUSEE -> false;
+        };
+
+        if (!validTransition) {
+            throw new BadRequestException(
+                    "Transition de statut invalide : " + currentStatut + " vers " + newStatut
+            );
+        }
+    }
+
+    private void validateCanUpdateNoteTest(StatutDemande statut) {
+        if (statut != StatutDemande.TEST_TECHNIQUE
+                && statut != StatutDemande.ENTRETIEN_FACE_A_FACE) {
+            throw new BadRequestException(
+                    "La note du test technique peut être ajoutée seulement après le statut TEST_TECHNIQUE"
+            );
+        }
     }
 
     private Demande findDemandeById(UUID id) {
