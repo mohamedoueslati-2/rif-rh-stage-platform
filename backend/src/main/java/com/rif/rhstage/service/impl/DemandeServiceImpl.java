@@ -3,11 +3,13 @@ package com.rif.rhstage.service.impl;
 import com.rif.rhstage.dto.demande.DemandeRequest;
 import com.rif.rhstage.dto.demande.DemandeResponse;
 import com.rif.rhstage.dto.demande.UpdateCommentaireRhRequest;
+import com.rif.rhstage.dto.demande.UpdateNoteTestRequest;
 import com.rif.rhstage.dto.demande.UpdateStatutDemandeRequest;
 import com.rif.rhstage.entity.Candidat;
 import com.rif.rhstage.entity.Demande;
 import com.rif.rhstage.entity.OffreStage;
 import com.rif.rhstage.entity.RH;
+import com.rif.rhstage.entity.StatutDemande;
 import com.rif.rhstage.exception.BadRequestException;
 import com.rif.rhstage.exception.ResourceNotFoundException;
 import com.rif.rhstage.mapper.DemandeMapper;
@@ -35,18 +37,18 @@ public class DemandeServiceImpl implements DemandeService {
     private final RhRepository rhRepository;
     private final DemandeMapper demandeMapper;
 
-    // Créer une demande de stage pour un candidat
+    // Candidat : déposer une demande pour une offre
     @Override
     @Transactional
-    public DemandeResponse create(DemandeRequest request) {
-        if (demandeRepository.existsByCandidatIdAndOffreStageId(request.candidatId(), request.offreStageId())) {
+    public DemandeResponse create(UUID candidatId, UUID offreId, DemandeRequest request) {
+        if (demandeRepository.existsByCandidatIdAndOffreStageId(candidatId, offreId)) {
             throw new BadRequestException("Le candidat a déjà déposé une demande pour cette offre");
         }
 
-        Candidat candidat = candidatRepository.findById(request.candidatId())
+        Candidat candidat = candidatRepository.findById(candidatId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidat introuvable"));
 
-        OffreStage offreStage = offreStageRepository.findById(request.offreStageId())
+        OffreStage offreStage = offreStageRepository.findById(offreId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offre de stage introuvable"));
 
         if (offreStage.getDateExpiration().isBefore(LocalDate.now())) {
@@ -67,7 +69,27 @@ public class DemandeServiceImpl implements DemandeService {
         return demandeMapper.toResponse(savedDemande);
     }
 
-    // Récupérer toutes les demandes
+    // Candidat : voir mes demandes
+    @Override
+    @Transactional(readOnly = true)
+    public List<DemandeResponse> getMyDemandes(UUID candidatId) {
+        return demandeRepository.findByCandidatId(candidatId)
+                .stream()
+                .map(demandeMapper::toResponse)
+                .toList();
+    }
+
+    // Candidat : voir le détail de ma demande
+    @Override
+    @Transactional(readOnly = true)
+    public DemandeResponse getMyDemandeById(UUID candidatId, UUID id) {
+        Demande demande = demandeRepository.findByCandidatIdAndId(candidatId, id)
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+
+        return demandeMapper.toResponse(demande);
+    }
+
+    // RH : voir toutes les demandes
     @Override
     @Transactional(readOnly = true)
     public List<DemandeResponse> getAll() {
@@ -77,72 +99,84 @@ public class DemandeServiceImpl implements DemandeService {
                 .toList();
     }
 
-    // Récupérer une demande par son ID
+    // RH : voir détail d'une demande
     @Override
     @Transactional(readOnly = true)
     public DemandeResponse getById(UUID id) {
-        Demande demande = demandeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+        Demande demande = findDemandeById(id);
 
         return demandeMapper.toResponse(demande);
     }
 
-    // Récupérer les demandes d'un candidat
-    @Override
-    @Transactional(readOnly = true)
-    public List<DemandeResponse> getByCandidatId(UUID candidatId) {
-        return demandeRepository.findByCandidatId(candidatId)
-                .stream()
-                .map(demandeMapper::toResponse)
-                .toList();
-    }
-
-    // Récupérer les demandes reçues par une offre
-    @Override
-    @Transactional(readOnly = true)
-    public List<DemandeResponse> getByOffreStageId(UUID offreStageId) {
-        return demandeRepository.findByOffreStageId(offreStageId)
-                .stream()
-                .map(demandeMapper::toResponse)
-                .toList();
-    }
-
-    // Modifier le statut d'une demande par le RH
+    // RH : changer le statut d'une demande
     @Override
     @Transactional
-    public DemandeResponse updateStatut(UUID id, UpdateStatutDemandeRequest request) {
-        Demande demande = demandeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+    public DemandeResponse updateStatut(UUID id, UUID rhId, UpdateStatutDemandeRequest request) {
+        Demande demande = findDemandeById(id);
+        RH rhTraitant = findRhById(rhId);
 
         demande.setStatut(request.statut());
-
-        if (request.rhTraitantId() != null) {
-            RH rhTraitant = rhRepository.findById(request.rhTraitantId())
-                    .orElseThrow(() -> new ResourceNotFoundException("RH traitant introuvable"));
-
-            demande.setRhTraitant(rhTraitant);
-        }
+        demande.setRhTraitant(rhTraitant);
 
         Demande savedDemande = demandeRepository.save(demande);
 
         return demandeMapper.toResponse(savedDemande);
     }
 
-    // Modifier le commentaire RH sur une demande
+    // RH : ajouter un commentaire RH
     @Override
     @Transactional
-    public DemandeResponse updateCommentaire(UUID id, UpdateCommentaireRhRequest request) {
-        Demande demande = demandeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+    public DemandeResponse updateCommentaire(UUID id, UUID rhId, UpdateCommentaireRhRequest request) {
+        Demande demande = findDemandeById(id);
+        RH rhTraitant = findRhById(rhId);
 
         demande.setCommentaireRh(request.commentaireRh());
+        demande.setRhTraitant(rhTraitant);
 
         Demande savedDemande = demandeRepository.save(demande);
 
         return demandeMapper.toResponse(savedDemande);
     }
 
-    // Générer une référence unique pour chaque demande
+    // RH : ajouter la note du test technique
+    @Override
+    @Transactional
+    public DemandeResponse updateNoteTest(UUID id, UUID rhId, UpdateNoteTestRequest request) {
+        Demande demande = findDemandeById(id);
+        RH rhTraitant = findRhById(rhId);
+
+        demande.setNoteTestTechnique(request.noteTestTechnique());
+        demande.setRhTraitant(rhTraitant);
+
+        Demande savedDemande = demandeRepository.save(demande);
+
+        return demandeMapper.toResponse(savedDemande);
+    }
+
+    // Candidat : annuler sa demande
+    @Override
+    @Transactional
+    public void delete(UUID id, UUID candidatId) {
+        Demande demande = demandeRepository.findByCandidatIdAndId(candidatId, id)
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+
+        if (demande.getStatut() != StatutDemande.SOUMISE) {
+            throw new BadRequestException("Impossible d'annuler une demande déjà traitée par le RH");
+        }
+
+        demandeRepository.delete(demande);
+    }
+
+    private Demande findDemandeById(UUID id) {
+        return demandeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+    }
+
+    private RH findRhById(UUID rhId) {
+        return rhRepository.findById(rhId)
+                .orElseThrow(() -> new ResourceNotFoundException("RH introuvable"));
+    }
+
     private String generateReferenceDemande() {
         String reference;
 
@@ -154,4 +188,3 @@ public class DemandeServiceImpl implements DemandeService {
         return reference;
     }
 }
-

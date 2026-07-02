@@ -3,6 +3,7 @@ package com.rif.rhstage.service.impl;
 import com.rif.rhstage.dto.demande.DemandeRequest;
 import com.rif.rhstage.dto.demande.DemandeResponse;
 import com.rif.rhstage.dto.demande.UpdateCommentaireRhRequest;
+import com.rif.rhstage.dto.demande.UpdateNoteTestRequest;
 import com.rif.rhstage.dto.demande.UpdateStatutDemandeRequest;
 import com.rif.rhstage.entity.*;
 import com.rif.rhstage.exception.BadRequestException;
@@ -55,8 +56,6 @@ class DemandeServiceImplTest {
         UUID offreId = UUID.randomUUID();
 
         DemandeRequest request = new DemandeRequest(
-                candidatId,
-                offreId,
                 "https://drive.google.com/cv.pdf",
                 "https://drive.google.com/lettre.pdf"
         );
@@ -101,7 +100,7 @@ class DemandeServiceImplTest {
         when(demandeRepository.save(demande)).thenReturn(savedDemande);
         when(demandeMapper.toResponse(savedDemande)).thenReturn(response);
 
-        DemandeResponse result = demandeService.create(request);
+        DemandeResponse result = demandeService.create(candidatId, offreId, request);
 
         assertNotNull(result);
         assertEquals(StatutDemande.SOUMISE, result.statut());
@@ -114,16 +113,11 @@ class DemandeServiceImplTest {
         UUID candidatId = UUID.randomUUID();
         UUID offreId = UUID.randomUUID();
 
-        DemandeRequest request = new DemandeRequest(
-                candidatId,
-                offreId,
-                "https://drive.google.com/cv.pdf",
-                null
-        );
+        DemandeRequest request = new DemandeRequest("https://drive.google.com/cv.pdf", null);
 
         when(demandeRepository.existsByCandidatIdAndOffreStageId(candidatId, offreId)).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> demandeService.create(request));
+        assertThrows(BadRequestException.class, () -> demandeService.create(candidatId, offreId, request));
 
         verify(demandeRepository, never()).save(any());
     }
@@ -133,17 +127,12 @@ class DemandeServiceImplTest {
         UUID candidatId = UUID.randomUUID();
         UUID offreId = UUID.randomUUID();
 
-        DemandeRequest request = new DemandeRequest(
-                candidatId,
-                offreId,
-                "https://drive.google.com/cv.pdf",
-                null
-        );
+        DemandeRequest request = new DemandeRequest("https://drive.google.com/cv.pdf", null);
 
         when(demandeRepository.existsByCandidatIdAndOffreStageId(candidatId, offreId)).thenReturn(false);
         when(candidatRepository.findById(candidatId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> demandeService.create(request));
+        assertThrows(ResourceNotFoundException.class, () -> demandeService.create(candidatId, offreId, request));
     }
 
     @Test
@@ -151,12 +140,7 @@ class DemandeServiceImplTest {
         UUID candidatId = UUID.randomUUID();
         UUID offreId = UUID.randomUUID();
 
-        DemandeRequest request = new DemandeRequest(
-                candidatId,
-                offreId,
-                "https://drive.google.com/cv.pdf",
-                null
-        );
+        DemandeRequest request = new DemandeRequest("https://drive.google.com/cv.pdf", null);
 
         Candidat candidat = new Candidat();
 
@@ -164,7 +148,7 @@ class DemandeServiceImplTest {
         when(candidatRepository.findById(candidatId)).thenReturn(Optional.of(candidat));
         when(offreStageRepository.findById(offreId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> demandeService.create(request));
+        assertThrows(ResourceNotFoundException.class, () -> demandeService.create(candidatId, offreId, request));
     }
 
     @Test
@@ -172,12 +156,7 @@ class DemandeServiceImplTest {
         UUID candidatId = UUID.randomUUID();
         UUID offreId = UUID.randomUUID();
 
-        DemandeRequest request = new DemandeRequest(
-                candidatId,
-                offreId,
-                "https://drive.google.com/cv.pdf",
-                null
-        );
+        DemandeRequest request = new DemandeRequest("https://drive.google.com/cv.pdf", null);
 
         Candidat candidat = new Candidat();
 
@@ -188,7 +167,7 @@ class DemandeServiceImplTest {
         when(candidatRepository.findById(candidatId)).thenReturn(Optional.of(candidat));
         when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
 
-        assertThrows(BadRequestException.class, () -> demandeService.create(request));
+        assertThrows(BadRequestException.class, () -> demandeService.create(candidatId, offreId, request));
 
         verify(demandeRepository, never()).save(any());
     }
@@ -239,7 +218,7 @@ class DemandeServiceImplTest {
     }
 
     @Test
-    void getByCandidatId_shouldReturnDemandes() {
+    void getMyDemandes_shouldReturnDemandes() {
         UUID candidatId = UUID.randomUUID();
 
         Demande demande = new Demande();
@@ -271,10 +250,48 @@ class DemandeServiceImplTest {
         when(demandeRepository.findByCandidatId(candidatId)).thenReturn(List.of(demande));
         when(demandeMapper.toResponse(demande)).thenReturn(response);
 
-        List<DemandeResponse> result = demandeService.getByCandidatId(candidatId);
+        List<DemandeResponse> result = demandeService.getMyDemandes(candidatId);
 
         assertEquals(1, result.size());
         assertEquals(candidatId, result.get(0).candidatId());
+    }
+
+    @Test
+    void getMyDemandeById_shouldReturnDemande() {
+        UUID candidatId = UUID.randomUUID();
+        UUID demandeId = UUID.randomUUID();
+
+        Demande demande = new Demande();
+        DemandeResponse response = new DemandeResponse(
+                demandeId,
+                "DEM-2026-ABC12345",
+                LocalDateTime.now(),
+                null,
+                "https://drive.google.com/cv.pdf",
+                StatutDemande.SOUMISE,
+                null,
+                null,
+                LocalDateTime.now(),
+                candidatId,
+                "Oueslati",
+                "Mohamed",
+                "mohamed@test.com",
+                "Software Engineering",
+                "4eme annee",
+                UUID.randomUUID(),
+                "OFF-2026-001",
+                "Stage Développeur Web",
+                "Développement",
+                null,
+                null
+        );
+
+        when(demandeRepository.findByCandidatIdAndId(candidatId, demandeId)).thenReturn(Optional.of(demande));
+        when(demandeMapper.toResponse(demande)).thenReturn(response);
+
+        DemandeResponse result = demandeService.getMyDemandeById(candidatId, demandeId);
+
+        assertEquals(demandeId, result.id());
     }
 
     @Test
@@ -282,10 +299,7 @@ class DemandeServiceImplTest {
         UUID demandeId = UUID.randomUUID();
         UUID rhId = UUID.randomUUID();
 
-        UpdateStatutDemandeRequest request = new UpdateStatutDemandeRequest(
-                StatutDemande.EN_ETUDE,
-                rhId
-        );
+        UpdateStatutDemandeRequest request = new UpdateStatutDemandeRequest(StatutDemande.EN_ETUDE);
 
         Demande demande = new Demande();
         RH rh = new RH();
@@ -320,7 +334,7 @@ class DemandeServiceImplTest {
         when(demandeRepository.save(demande)).thenReturn(savedDemande);
         when(demandeMapper.toResponse(savedDemande)).thenReturn(response);
 
-        DemandeResponse result = demandeService.updateStatut(demandeId, request);
+        DemandeResponse result = demandeService.updateStatut(demandeId, rhId, request);
 
         assertEquals(StatutDemande.EN_ETUDE, result.statut());
 
@@ -331,9 +345,7 @@ class DemandeServiceImplTest {
     void updateCommentaire_shouldUpdateCommentaireRh() {
         UUID demandeId = UUID.randomUUID();
 
-        UpdateCommentaireRhRequest request = new UpdateCommentaireRhRequest(
-                "Profil intéressant pour test technique"
-        );
+        UpdateCommentaireRhRequest request = new UpdateCommentaireRhRequest("Profil intéressant pour test technique");
 
         Demande demande = new Demande();
         Demande savedDemande = new Demande();
@@ -366,11 +378,90 @@ class DemandeServiceImplTest {
         when(demandeRepository.save(demande)).thenReturn(savedDemande);
         when(demandeMapper.toResponse(savedDemande)).thenReturn(response);
 
-        DemandeResponse result = demandeService.updateCommentaire(demandeId, request);
+        UUID rhId = UUID.randomUUID();
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(new RH()));
+
+        DemandeResponse result = demandeService.updateCommentaire(demandeId, rhId, request);
 
         assertEquals("Profil intéressant pour test technique", result.commentaireRh());
 
         verify(demandeRepository).save(demande);
+    }
+
+    @Test
+    void updateNoteTest_shouldUpdateNoteTechnique() {
+        UUID demandeId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+
+        UpdateNoteTestRequest request = new UpdateNoteTestRequest(87.5);
+
+        Demande demande = new Demande();
+        Demande savedDemande = new Demande();
+
+        DemandeResponse response = new DemandeResponse(
+                demandeId,
+                "DEM-2026-ABC12345",
+                LocalDateTime.now(),
+                null,
+                "https://drive.google.com/cv.pdf",
+                StatutDemande.EN_ETUDE,
+                87.5,
+                null,
+                LocalDateTime.now(),
+                UUID.randomUUID(),
+                "Oueslati",
+                "Mohamed",
+                "mohamed@test.com",
+                "Software Engineering",
+                "4eme annee",
+                UUID.randomUUID(),
+                "OFF-2026-001",
+                "Stage Développeur Web",
+                "Développement",
+                rhId,
+                "RH Admin"
+        );
+
+        when(demandeRepository.findById(demandeId)).thenReturn(Optional.of(demande));
+        when(rhRepository.findById(rhId)).thenReturn(Optional.of(new RH()));
+        when(demandeRepository.save(demande)).thenReturn(savedDemande);
+        when(demandeMapper.toResponse(savedDemande)).thenReturn(response);
+
+        DemandeResponse result = demandeService.updateNoteTest(demandeId, rhId, request);
+
+        assertEquals(87.5, result.noteTestTechnique());
+
+        verify(demandeRepository).save(demande);
+    }
+
+    @Test
+    void delete_shouldRemoveDemande_whenStatusIsSoumise() {
+        UUID demandeId = UUID.randomUUID();
+        UUID candidatId = UUID.randomUUID();
+
+        Demande demande = new Demande();
+        demande.setStatut(StatutDemande.SOUMISE);
+
+        when(demandeRepository.findByCandidatIdAndId(candidatId, demandeId)).thenReturn(Optional.of(demande));
+
+        demandeService.delete(demandeId, candidatId);
+
+        verify(demandeRepository).delete(demande);
+    }
+
+    @Test
+    void delete_shouldThrowBadRequest_whenDemandeAlreadyProcessed() {
+        UUID demandeId = UUID.randomUUID();
+        UUID candidatId = UUID.randomUUID();
+
+        Demande demande = new Demande();
+        demande.setStatut(StatutDemande.EN_ETUDE);
+
+        when(demandeRepository.findByCandidatIdAndId(candidatId, demandeId)).thenReturn(Optional.of(demande));
+
+        assertThrows(BadRequestException.class, () -> demandeService.delete(demandeId, candidatId));
+
+        verify(demandeRepository, never()).delete(any());
     }
 }
 

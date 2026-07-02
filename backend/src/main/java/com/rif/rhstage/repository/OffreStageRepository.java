@@ -8,11 +8,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface OffreStageRepository extends JpaRepository<OffreStage, UUID> {
-
-    List<OffreStage> findByRhCreateurId(UUID rhCreateurId);
-
     List<OffreStage> findByDateExpirationGreaterThanEqual(LocalDate today);
 
     boolean existsByReferenceOffre(String referenceOffre);
+
+    boolean existsByReferenceOffreAndIdNot(String referenceOffre, UUID id);
 }
 

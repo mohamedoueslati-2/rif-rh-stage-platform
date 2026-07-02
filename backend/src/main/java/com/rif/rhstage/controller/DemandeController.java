@@ -3,6 +3,7 @@ package com.rif.rhstage.controller;
 import com.rif.rhstage.dto.demande.DemandeRequest;
 import com.rif.rhstage.dto.demande.DemandeResponse;
 import com.rif.rhstage.dto.demande.UpdateCommentaireRhRequest;
+import com.rif.rhstage.dto.demande.UpdateNoteTestRequest;
 import com.rif.rhstage.dto.demande.UpdateStatutDemandeRequest;
 import com.rif.rhstage.service.DemandeService;
 import jakarta.validation.Valid;
@@ -21,52 +22,84 @@ public class DemandeController {
 
     private final DemandeService demandeService;
 
-    // Déposer une demande de stage par un candidat
-    @PostMapping
-    public ResponseEntity<DemandeResponse> create(@Valid @RequestBody DemandeRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(demandeService.create(request));
+    // Candidat : déposer une demande pour une offre
+    @PostMapping("/offre/{offreId}")
+    public ResponseEntity<DemandeResponse> create(
+            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @PathVariable UUID offreId,
+            @Valid @RequestBody DemandeRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(demandeService.create(candidatId, offreId, request));
     }
 
-    // Récupérer toutes les demandes
+    // Candidat : voir mes demandes
+    @GetMapping("/me")
+    public ResponseEntity<List<DemandeResponse>> getMyDemandes(
+            @RequestHeader("X-Candidat-Id") UUID candidatId
+    ) {
+        return ResponseEntity.ok(demandeService.getMyDemandes(candidatId));
+    }
+
+    // Candidat : voir le détail de ma demande
+    @GetMapping("/me/{id}")
+    public ResponseEntity<DemandeResponse> getMyDemandeById(
+            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(demandeService.getMyDemandeById(candidatId, id));
+    }
+
+    // RH : voir toutes les demandes
     @GetMapping
     public ResponseEntity<List<DemandeResponse>> getAll() {
         return ResponseEntity.ok(demandeService.getAll());
     }
 
-    // Récupérer une demande par ID
+    // RH : voir détail d'une demande
     @GetMapping("/{id}")
     public ResponseEntity<DemandeResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(demandeService.getById(id));
     }
 
-    // Récupérer les demandes d'un candidat
-    @GetMapping("/candidat/{candidatId}")
-    public ResponseEntity<List<DemandeResponse>> getByCandidatId(@PathVariable UUID candidatId) {
-        return ResponseEntity.ok(demandeService.getByCandidatId(candidatId));
-    }
-
-    // Récupérer les demandes reçues par une offre
-    @GetMapping("/offre/{offreStageId}")
-    public ResponseEntity<List<DemandeResponse>> getByOffreStageId(@PathVariable UUID offreStageId) {
-        return ResponseEntity.ok(demandeService.getByOffreStageId(offreStageId));
-    }
-
-    // Modifier le statut d'une demande par le RH
+    // RH : changer le statut d'une demande
     @PatchMapping("/{id}/statut")
     public ResponseEntity<DemandeResponse> updateStatut(
+            @RequestHeader("X-Rh-Id") UUID rhId,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateStatutDemandeRequest request
     ) {
-        return ResponseEntity.ok(demandeService.updateStatut(id, request));
+        return ResponseEntity.ok(demandeService.updateStatut(id, rhId, request));
     }
 
-    // Modifier le commentaire RH d'une demande
+    // RH : ajouter un commentaire RH
     @PatchMapping("/{id}/commentaire")
     public ResponseEntity<DemandeResponse> updateCommentaire(
+            @RequestHeader("X-Rh-Id") UUID rhId,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateCommentaireRhRequest request
     ) {
-        return ResponseEntity.ok(demandeService.updateCommentaire(id, request));
+        return ResponseEntity.ok(demandeService.updateCommentaire(id, rhId, request));
+    }
+
+    // RH : ajouter la note du test technique
+    @PatchMapping("/{id}/note-test")
+    public ResponseEntity<DemandeResponse> updateNoteTest(
+            @RequestHeader("X-Rh-Id") UUID rhId,
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateNoteTestRequest request
+    ) {
+        return ResponseEntity.ok(demandeService.updateNoteTest(id, rhId, request));
+    }
+
+    // Candidat : annuler sa demande
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @RequestHeader("X-Candidat-Id") UUID candidatId,
+            @PathVariable UUID id
+    ) {
+        demandeService.delete(id, candidatId);
+        return ResponseEntity.noContent().build();
     }
 }
 

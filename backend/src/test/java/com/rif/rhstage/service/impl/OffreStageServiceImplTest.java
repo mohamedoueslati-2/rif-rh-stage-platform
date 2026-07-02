@@ -2,11 +2,14 @@ package com.rif.rhstage.service.impl;
 
 import com.rif.rhstage.dto.offre.OffreStageRequest;
 import com.rif.rhstage.dto.offre.OffreStageResponse;
+import com.rif.rhstage.dto.offre.PatchOffreStageRequest;
+import com.rif.rhstage.dto.offre.UpdateOffreStageRequest;
 import com.rif.rhstage.entity.OffreStage;
 import com.rif.rhstage.entity.RH;
 import com.rif.rhstage.exception.BadRequestException;
 import com.rif.rhstage.exception.ResourceNotFoundException;
 import com.rif.rhstage.mapper.OffreStageMapper;
+import com.rif.rhstage.repository.DemandeRepository;
 import com.rif.rhstage.repository.OffreStageRepository;
 import com.rif.rhstage.repository.RhRepository;
 import org.junit.jupiter.api.Test;
@@ -33,6 +36,9 @@ class OffreStageServiceImplTest {
     private RhRepository rhRepository;
 
     @Mock
+    private DemandeRepository demandeRepository;
+
+    @Mock
     private OffreStageMapper offreStageMapper;
 
     @InjectMocks
@@ -50,11 +56,12 @@ class OffreStageServiceImplTest {
                 "Tunis",
                 "2 mois",
                 LocalDate.now().plusDays(5),
-                LocalDate.now().plusMonths(1),
-                rhId
+                LocalDate.now().plusMonths(1)
         );
 
         RH rh = new RH();
+        rh.setId(rhId);
+
         OffreStage offre = new OffreStage();
         OffreStage savedOffre = new OffreStage();
 
@@ -80,7 +87,7 @@ class OffreStageServiceImplTest {
         when(offreStageRepository.save(offre)).thenReturn(savedOffre);
         when(offreStageMapper.toResponse(savedOffre)).thenReturn(response);
 
-        OffreStageResponse result = offreStageService.create(request);
+        OffreStageResponse result = offreStageService.create(rhId, request);
 
         assertNotNull(result);
         assertEquals("OFF-2026-001", result.referenceOffre());
@@ -100,13 +107,12 @@ class OffreStageServiceImplTest {
                 "Tunis",
                 "2 mois",
                 LocalDate.now().plusDays(5),
-                LocalDate.now().plusMonths(1),
-                rhId
+                LocalDate.now().plusMonths(1)
         );
 
         when(offreStageRepository.existsByReferenceOffre(request.referenceOffre())).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> offreStageService.create(request));
+        assertThrows(BadRequestException.class, () -> offreStageService.create(rhId, request));
 
         verify(offreStageRepository, never()).save(any());
     }
@@ -123,13 +129,12 @@ class OffreStageServiceImplTest {
                 "Tunis",
                 "2 mois",
                 LocalDate.now().plusMonths(1),
-                LocalDate.now().plusDays(5),
-                rhId
+                LocalDate.now().plusDays(5)
         );
 
         when(offreStageRepository.existsByReferenceOffre(request.referenceOffre())).thenReturn(false);
 
-        assertThrows(BadRequestException.class, () -> offreStageService.create(request));
+        assertThrows(BadRequestException.class, () -> offreStageService.create(rhId, request));
 
         verify(offreStageRepository, never()).save(any());
     }
@@ -146,18 +151,19 @@ class OffreStageServiceImplTest {
                 "Tunis",
                 "2 mois",
                 LocalDate.now().plusDays(5),
-                LocalDate.now().plusMonths(1),
-                rhId
+                LocalDate.now().plusMonths(1)
         );
 
         when(offreStageRepository.existsByReferenceOffre(request.referenceOffre())).thenReturn(false);
         when(rhRepository.findById(rhId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> offreStageService.create(request));
+        assertThrows(ResourceNotFoundException.class, () -> offreStageService.create(rhId, request));
+
+        verify(offreStageRepository, never()).save(any());
     }
 
     @Test
-    void getAll_shouldReturnAllOffres() {
+    void getAll_shouldReturnAvailableOffres() {
         OffreStage offre = new OffreStage();
 
         OffreStageResponse response = new OffreStageResponse(
@@ -176,43 +182,346 @@ class OffreStageServiceImplTest {
                 "rh@test.com"
         );
 
-        when(offreStageRepository.findAll()).thenReturn(List.of(offre));
+        when(offreStageRepository.findByDateExpirationGreaterThanEqual(any(LocalDate.class)))
+                .thenReturn(List.of(offre));
         when(offreStageMapper.toResponse(offre)).thenReturn(response);
 
         List<OffreStageResponse> result = offreStageService.getAll();
 
         assertEquals(1, result.size());
+        assertEquals("OFF-2026-001", result.get(0).referenceOffre());
+    }
+
+    @Test
+    void getById_shouldReturnOffre_whenExists() {
+        UUID offreId = UUID.randomUUID();
+
+        OffreStage offre = new OffreStage();
+
+        OffreStageResponse response = new OffreStageResponse(
+                offreId,
+                "OFF-2026-001",
+                "Stage Développeur Web",
+                "Description",
+                "Développement",
+                "Tunis",
+                "2 mois",
+                LocalDate.now(),
+                LocalDate.now().plusMonths(1),
+                null,
+                UUID.randomUUID(),
+                "RH Admin",
+                "rh@test.com"
+        );
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+        when(offreStageMapper.toResponse(offre)).thenReturn(response);
+
+        OffreStageResponse result = offreStageService.getById(offreId);
+
+        assertEquals(offreId, result.id());
     }
 
     @Test
     void getById_shouldThrowNotFound_whenOffreDoesNotExist() {
-        UUID id = UUID.randomUUID();
+        UUID offreId = UUID.randomUUID();
 
-        when(offreStageRepository.findById(id)).thenReturn(Optional.empty());
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> offreStageService.getById(id));
+        assertThrows(ResourceNotFoundException.class, () -> offreStageService.getById(offreId));
     }
 
     @Test
-    void delete_shouldDeleteOffre_whenExists() {
-        UUID id = UUID.randomUUID();
+    void update_shouldUpdateOffre_whenDataIsValidAndRhIsOwner() {
+        UUID offreId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
 
-        when(offreStageRepository.existsById(id)).thenReturn(true);
+        UpdateOffreStageRequest request = new UpdateOffreStageRequest(
+                "OFF-2026-002",
+                "Stage Backend",
+                "Spring Boot PostgreSQL",
+                "Backend",
+                "Tunis",
+                "2 mois",
+                LocalDate.now().plusDays(5),
+                LocalDate.now().plusMonths(1)
+        );
 
-        offreStageService.delete(id);
+        RH rh = new RH();
+        rh.setId(rhId);
 
-        verify(offreStageRepository).deleteById(id);
+        OffreStage offre = new OffreStage();
+        offre.setRhCreateur(rh);
+
+        OffreStage savedOffre = new OffreStage();
+
+        OffreStageResponse response = new OffreStageResponse(
+                offreId,
+                "OFF-2026-002",
+                "Stage Backend",
+                "Spring Boot PostgreSQL",
+                "Backend",
+                "Tunis",
+                "2 mois",
+                request.dateDebut(),
+                request.dateExpiration(),
+                null,
+                rhId,
+                "RH Admin",
+                "rh@test.com"
+        );
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+        when(offreStageRepository.existsByReferenceOffreAndIdNot(request.referenceOffre(), offreId)).thenReturn(false);
+        doNothing().when(offreStageMapper).updateEntity(offre, request);
+        when(offreStageRepository.save(offre)).thenReturn(savedOffre);
+        when(offreStageMapper.toResponse(savedOffre)).thenReturn(response);
+
+        OffreStageResponse result = offreStageService.update(offreId, rhId, request);
+
+        assertEquals("OFF-2026-002", result.referenceOffre());
+        assertEquals("Stage Backend", result.titre());
+
+        verify(offreStageMapper).updateEntity(offre, request);
+        verify(offreStageRepository).save(offre);
     }
 
     @Test
-    void delete_shouldThrowNotFound_whenOffreDoesNotExist() {
-        UUID id = UUID.randomUUID();
+    void update_shouldThrowBadRequest_whenRhIsNotOwner() {
+        UUID offreId = UUID.randomUUID();
+        UUID ownerRhId = UUID.randomUUID();
+        UUID otherRhId = UUID.randomUUID();
 
-        when(offreStageRepository.existsById(id)).thenReturn(false);
+        UpdateOffreStageRequest request = new UpdateOffreStageRequest(
+                "OFF-2026-002",
+                "Stage Backend",
+                "Spring Boot PostgreSQL",
+                "Backend",
+                "Tunis",
+                "2 mois",
+                LocalDate.now().plusDays(5),
+                LocalDate.now().plusMonths(1)
+        );
 
-        assertThrows(ResourceNotFoundException.class, () -> offreStageService.delete(id));
+        RH ownerRh = new RH();
+        ownerRh.setId(ownerRhId);
 
-        verify(offreStageRepository, never()).deleteById(any());
+        OffreStage offre = new OffreStage();
+        offre.setRhCreateur(ownerRh);
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+
+        assertThrows(BadRequestException.class, () -> offreStageService.update(offreId, otherRhId, request));
+
+        verify(offreStageRepository, never()).save(any());
+    }
+
+    @Test
+    void update_shouldThrowBadRequest_whenReferenceAlreadyUsed() {
+        UUID offreId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+
+        UpdateOffreStageRequest request = new UpdateOffreStageRequest(
+                "OFF-2026-002",
+                "Stage Backend",
+                "Spring Boot PostgreSQL",
+                "Backend",
+                "Tunis",
+                "2 mois",
+                LocalDate.now().plusDays(5),
+                LocalDate.now().plusMonths(1)
+        );
+
+        RH rh = new RH();
+        rh.setId(rhId);
+
+        OffreStage offre = new OffreStage();
+        offre.setRhCreateur(rh);
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+        when(offreStageRepository.existsByReferenceOffreAndIdNot(request.referenceOffre(), offreId)).thenReturn(true);
+
+        assertThrows(BadRequestException.class, () -> offreStageService.update(offreId, rhId, request));
+
+        verify(offreStageRepository, never()).save(any());
+    }
+
+    @Test
+    void patch_shouldPatchOffre_whenDataIsValidAndRhIsOwner() {
+        UUID offreId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+
+        PatchOffreStageRequest request = new PatchOffreStageRequest(
+                null,
+                "Stage Fullstack Updated",
+                null,
+                "Fullstack",
+                null,
+                null,
+                null,
+                null
+        );
+
+        RH rh = new RH();
+        rh.setId(rhId);
+
+        OffreStage offre = new OffreStage();
+        offre.setReferenceOffre("OFF-2026-001");
+        offre.setDateDebut(LocalDate.now().plusDays(5));
+        offre.setDateExpiration(LocalDate.now().plusMonths(1));
+        offre.setRhCreateur(rh);
+
+        OffreStage savedOffre = new OffreStage();
+
+        OffreStageResponse response = new OffreStageResponse(
+                offreId,
+                "OFF-2026-001",
+                "Stage Fullstack Updated",
+                "Description",
+                "Fullstack",
+                "Tunis",
+                "2 mois",
+                offre.getDateDebut(),
+                offre.getDateExpiration(),
+                null,
+                rhId,
+                "RH Admin",
+                "rh@test.com"
+        );
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+        doNothing().when(offreStageMapper).patchEntity(offre, request);
+        when(offreStageRepository.save(offre)).thenReturn(savedOffre);
+        when(offreStageMapper.toResponse(savedOffre)).thenReturn(response);
+
+        OffreStageResponse result = offreStageService.patch(offreId, rhId, request);
+
+        assertEquals("Stage Fullstack Updated", result.titre());
+        assertEquals("Fullstack", result.domaine());
+
+        verify(offreStageMapper).patchEntity(offre, request);
+        verify(offreStageRepository).save(offre);
+    }
+
+    @Test
+    void patch_shouldThrowBadRequest_whenReferenceAlreadyUsed() {
+        UUID offreId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+
+        PatchOffreStageRequest request = new PatchOffreStageRequest(
+                "OFF-2026-999",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        RH rh = new RH();
+        rh.setId(rhId);
+
+        OffreStage offre = new OffreStage();
+        offre.setReferenceOffre("OFF-2026-001");
+        offre.setDateDebut(LocalDate.now().plusDays(5));
+        offre.setDateExpiration(LocalDate.now().plusMonths(1));
+        offre.setRhCreateur(rh);
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+        when(offreStageRepository.existsByReferenceOffreAndIdNot(request.referenceOffre(), offreId)).thenReturn(true);
+
+        assertThrows(BadRequestException.class, () -> offreStageService.patch(offreId, rhId, request));
+
+        verify(offreStageRepository, never()).save(any());
+    }
+
+    @Test
+    void patch_shouldThrowBadRequest_whenExpirationBeforeStartDate() {
+        UUID offreId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+
+        PatchOffreStageRequest request = new PatchOffreStageRequest(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.now().plusMonths(1),
+                LocalDate.now().plusDays(5)
+        );
+
+        RH rh = new RH();
+        rh.setId(rhId);
+
+        OffreStage offre = new OffreStage();
+        offre.setReferenceOffre("OFF-2026-001");
+        offre.setDateDebut(LocalDate.now().plusDays(5));
+        offre.setDateExpiration(LocalDate.now().plusMonths(1));
+        offre.setRhCreateur(rh);
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+
+        assertThrows(BadRequestException.class, () -> offreStageService.patch(offreId, rhId, request));
+
+        verify(offreStageRepository, never()).save(any());
+    }
+
+    @Test
+    void delete_shouldDeleteOffre_whenRhIsOwnerAndOffreHasNoDemandes() {
+        UUID offreId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+
+        RH rh = new RH();
+        rh.setId(rhId);
+
+        OffreStage offre = new OffreStage();
+        offre.setRhCreateur(rh);
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+        when(demandeRepository.existsByOffreStageId(offreId)).thenReturn(false);
+
+        offreStageService.delete(offreId, rhId);
+
+        verify(offreStageRepository).delete(offre);
+    }
+
+    @Test
+    void delete_shouldThrowBadRequest_whenOffreHasDemandes() {
+        UUID offreId = UUID.randomUUID();
+        UUID rhId = UUID.randomUUID();
+
+        RH rh = new RH();
+        rh.setId(rhId);
+
+        OffreStage offre = new OffreStage();
+        offre.setRhCreateur(rh);
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+        when(demandeRepository.existsByOffreStageId(offreId)).thenReturn(true);
+
+        assertThrows(BadRequestException.class, () -> offreStageService.delete(offreId, rhId));
+
+        verify(offreStageRepository, never()).delete(any());
+    }
+
+    @Test
+    void delete_shouldThrowBadRequest_whenRhIsNotOwner() {
+        UUID offreId = UUID.randomUUID();
+        UUID ownerRhId = UUID.randomUUID();
+        UUID otherRhId = UUID.randomUUID();
+
+        RH ownerRh = new RH();
+        ownerRh.setId(ownerRhId);
+
+        OffreStage offre = new OffreStage();
+        offre.setRhCreateur(ownerRh);
+
+        when(offreStageRepository.findById(offreId)).thenReturn(Optional.of(offre));
+
+        assertThrows(BadRequestException.class, () -> offreStageService.delete(offreId, otherRhId));
+
+        verify(offreStageRepository, never()).delete(any());
     }
 }
-

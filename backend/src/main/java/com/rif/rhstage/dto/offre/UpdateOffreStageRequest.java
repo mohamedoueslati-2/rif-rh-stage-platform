@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
-public record OffreStageRequest(
+public record UpdateOffreStageRequest(
 
         @NotBlank
         String referenceOffre,
