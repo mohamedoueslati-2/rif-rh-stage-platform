@@ -180,11 +180,3 @@ cd frontend && npm run build
 docker compose config
 ```
 
-## 10. Limites assumées
-
-- pas de pagination ou recherche côté serveur ;
-- pas de stockage binaire des CV, seulement des URLs validées ;
-- pas de date d'entretien persistée ;
-- pas de refresh token/révocation serveur ;
-- email synchrone sans file de messages ;
-- pas d'intégration IA, FCM ou génération PDF.

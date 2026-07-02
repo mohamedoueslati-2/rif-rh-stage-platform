@@ -161,20 +161,8 @@ Aucun email n’est envoyé pour `SOUMISE`, pour une adresse absente ou pour une
 - profils candidat et RH, changement de mot de passe candidat ;
 - thèmes clair/sombre et mises en page responsives jusqu'aux écrans mobiles.
 
-## 10. Hors périmètre actuel
 
-Ne sont pas implémentés dans le backend actuel :
-
-- analyse ou notation par intelligence artificielle ;
-- Firebase Cloud Messaging ;
-- table ou centre de notifications ;
-- envoi groupé ou préparation d’emails avec Gmail/`mailto` ;
-- téléversement et lecture automatique du contenu d’un CV ;
-- stockage d’une date d’entretien ;
-- création libre d’un compte RH ;
-- pagination et filtrage côté serveur. Les écrans actuels proposent une pagination et des filtres dynamiques côté client.
-
-## 11. Critères d’acceptation principaux
+## 10. Critères d’acceptation principaux
 
 1. Un candidat peut s’inscrire, se connecter et gérer son profil.
 2. Un RH peut se connecter et gérer uniquement ses propres offres.
