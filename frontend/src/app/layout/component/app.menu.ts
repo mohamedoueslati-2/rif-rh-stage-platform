@@ -1,9 +1,9 @@
-import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
-import { AppMenuitem } from './app.menuitem';
 import { AuthService } from '@/app/pages/auth/services/auth.service';
+import { AppMenuitem } from './app.menuitem';
 
 @Component({
     selector: 'app-menu',
@@ -17,187 +17,50 @@ import { AuthService } from '@/app/pages/auth/services/auth.service';
                 <li class="menu-separator"></li>
             }
         }
-    </ul> `,
+    </ul>`
 })
 export class AppMenu {
     private readonly authService = inject(AuthService);
     model: MenuItem[] = [];
 
-    ngOnInit() {
-        const role = this.authService.getRole();
+    ngOnInit(): void {
+        if (this.authService.getRole() === 'CANDIDAT') {
+            this.model = [
+                {
+                    label: 'Navigation',
+                    items: [
+                        { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/candidat/dashboard'] },
+                        { label: 'Offres de stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/candidat/offres'] },
+                        { label: 'Mes demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/candidat/mes-demandes'] }
+                    ]
+                },
+                {
+                    label: 'Compte',
+                    items: [
+                        { label: 'Mon profil', icon: 'pi pi-fw pi-user', routerLink: ['/candidat/profile'] },
+                        { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
+                    ]
+                }
+            ];
+            return;
+        }
 
         this.model = [
             {
-                label: 'Home',
+                label: 'Navigation',
                 items: [
-                    {
-                        label: role === 'CANDIDAT' ? 'Dashboard Candidat' : 'Dashboard',
-                        icon: 'pi pi-fw pi-home',
-                        routerLink: [role === 'CANDIDAT' ? '/candidat/dashboard' : '/dashboard']
-                    }
-                ]
-            },
-            this.businessMenu(role),
-            {
-                label: 'UI Components',
-                items: [
-                    { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', routerLink: ['/uikit/formlayout'] },
-                    { label: 'Input', icon: 'pi pi-fw pi-check-square', routerLink: ['/uikit/input'] },
-                    { label: 'Button', icon: 'pi pi-fw pi-mobile', class: 'rotated-icon', routerLink: ['/uikit/button'] },
-                    { label: 'Table', icon: 'pi pi-fw pi-table', routerLink: ['/uikit/table'] },
-                    { label: 'List', icon: 'pi pi-fw pi-list', routerLink: ['/uikit/list'] },
-                    { label: 'Tree', icon: 'pi pi-fw pi-share-alt', routerLink: ['/uikit/tree'] },
-                    { label: 'Panel', icon: 'pi pi-fw pi-tablet', routerLink: ['/uikit/panel'] },
-                    { label: 'Overlay', icon: 'pi pi-fw pi-clone', routerLink: ['/uikit/overlay'] },
-                    { label: 'Media', icon: 'pi pi-fw pi-image', routerLink: ['/uikit/media'] },
-                    { label: 'Menu', icon: 'pi pi-fw pi-bars', routerLink: ['/uikit/menu'] },
-                    { label: 'Message', icon: 'pi pi-fw pi-comment', routerLink: ['/uikit/message'] },
-                    { label: 'File', icon: 'pi pi-fw pi-file', routerLink: ['/uikit/file'] },
-                    { label: 'Chart', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/uikit/charts'] },
-                    { label: 'Timeline', icon: 'pi pi-fw pi-calendar', routerLink: ['/uikit/timeline'] },
-                    { label: 'Misc', icon: 'pi pi-fw pi-circle', routerLink: ['/uikit/misc'] }
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] },
+                    { label: 'Offres de stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/rh/offres'] },
+                    { label: 'Demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/rh/demandes'] }
                 ]
             },
             {
-                label: 'Pages',
-                icon: 'pi pi-fw pi-briefcase',
-                path: '/pages',
+                label: 'Compte',
                 items: [
-                    {
-                        label: 'Landing',
-                        icon: 'pi pi-fw pi-globe',
-                        routerLink: ['/landing']
-                    },
-                    {
-                        label: 'Auth',
-                        icon: 'pi pi-fw pi-user',
-                        path: '/auth',
-                        items: [
-                            {
-                                label: 'Login',
-                                icon: 'pi pi-fw pi-sign-in',
-                                routerLink: ['/auth/login']
-                            },
-                            {
-                                label: 'Error',
-                                icon: 'pi pi-fw pi-times-circle',
-                                routerLink: ['/auth/error']
-                            },
-                            {
-                                label: 'Access Denied',
-                                icon: 'pi pi-fw pi-lock',
-                                routerLink: ['/auth/access']
-                            }
-                        ]
-                    },
-                    {
-                        label: 'Crud',
-                        icon: 'pi pi-fw pi-pencil',
-                        routerLink: ['/pages/crud']
-                    },
-                    {
-                        label: 'Not Found',
-                        icon: 'pi pi-fw pi-exclamation-circle',
-                        routerLink: ['/pages/notfound']
-                    },
-                    {
-                        label: 'Empty',
-                        icon: 'pi pi-fw pi-circle-off',
-                        routerLink: ['/pages/empty']
-                    }
-                ]
-            },
-            {
-                label: 'Hierarchy',
-                path: '/hierarchy',
-                items: [
-                    {
-                        label: 'Submenu 1',
-                        icon: 'pi pi-fw pi-bookmark',
-                        path: '/hierarchy/submenu_1',
-                        items: [
-                            {
-                                label: 'Submenu 1.1',
-                                icon: 'pi pi-fw pi-bookmark',
-                                path: '/hierarchy/submenu_1/submenu_1_1',
-                                items: [
-                                    { label: 'Submenu 1.1.1', icon: 'pi pi-fw pi-bookmark' },
-                                    { label: 'Submenu 1.1.2', icon: 'pi pi-fw pi-bookmark' },
-                                    { label: 'Submenu 1.1.3', icon: 'pi pi-fw pi-bookmark' }
-                                ]
-                            },
-                            {
-                                label: 'Submenu 1.2',
-                                icon: 'pi pi-fw pi-bookmark',
-                                path: '/hierarchy/submenu_1/submenu_1_2',
-                                items: [{ label: 'Submenu 1.2.1', icon: 'pi pi-fw pi-bookmark' }]
-                            }
-                        ]
-                    },
-                    {
-                        label: 'Submenu 2',
-                        icon: 'pi pi-fw pi-bookmark',
-                        path: '/hierarchy/submenu_2',
-                        items: [
-                            {
-                                label: 'Submenu 2.1',
-                                icon: 'pi pi-fw pi-bookmark',
-                                path: '/hierarchy/submenu_2/submenu_2_1',
-                                items: [
-                                    { label: 'Submenu 2.1.1', icon: 'pi pi-fw pi-bookmark' },
-                                    { label: 'Submenu 2.1.2', icon: 'pi pi-fw pi-bookmark' }
-                                ]
-                            },
-                            {
-                                label: 'Submenu 2.2',
-                                icon: 'pi pi-fw pi-bookmark',
-                                path: '/hierarchy/submenu_2/submenu_2_2',
-                                items: [{ label: 'Submenu 2.2.1', icon: 'pi pi-fw pi-bookmark' }]
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                label: 'Get Started',
-                items: [
-                    {
-                        label: 'Documentation',
-                        icon: 'pi pi-fw pi-book',
-                        routerLink: ['/documentation']
-                    },
-                    {
-                        label: 'View Source',
-                        icon: 'pi pi-fw pi-github',
-                        url: 'https://github.com/primefaces/sakai-ng',
-                        target: '_blank'
-                    }
+                    { label: 'Mon profil RH', icon: 'pi pi-fw pi-user', routerLink: ['/rh/profile'] },
+                    { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
                 ]
             }
         ];
-    }
-
-    private businessMenu(role: 'RH' | 'CANDIDAT' | null): MenuItem {
-        if (role === 'CANDIDAT') {
-            return {
-                label: 'Espace Candidat',
-                items: [
-                    { label: 'Offres Stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/candidat/offres'] },
-                    { label: 'Mes Demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/candidat/mes-demandes'] },
-                    { label: 'Profil candidat', icon: 'pi pi-fw pi-id-card', routerLink: ['/candidat/profile'] },
-                    { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
-                ]
-            };
-        }
-
-        return {
-            label: 'Gestion RH',
-            items: [
-                { label: 'Offres Stage', icon: 'pi pi-fw pi-briefcase', routerLink: ['/rh/offres'] },
-                { label: 'Demandes', icon: 'pi pi-fw pi-inbox', routerLink: ['/rh/demandes'] },
-                { label: 'Profil RH', icon: 'pi pi-fw pi-id-card', routerLink: ['/rh/profile'] },
-                { label: 'Déconnexion', icon: 'pi pi-fw pi-sign-out', command: () => this.authService.logout() }
-            ]
-        };
     }
 }

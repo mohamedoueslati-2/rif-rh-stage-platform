@@ -1,9 +1,7 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
-import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
-import { BusinessPage } from './app/pages/business/business-page';
 import { authGuard } from './app/core/guards/auth.guard';
 import { roleGuard } from './app/core/guards/role.guard';
 import { Contact } from './app/pages/contact/contact';
@@ -34,10 +32,7 @@ export const appRoutes: Routes = [
             { path: 'candidat/dashboard', component: CandidateDashboard, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
             { path: 'candidat/offres', component: CandidateOffers, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
             { path: 'candidat/mes-demandes', component: CandidateApplications, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
-            { path: 'candidat/profile', component: CandidateProfile, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } },
-            { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
-            { path: 'documentation', component: Documentation },
-            { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
+            { path: 'candidat/profile', component: CandidateProfile, canActivate: [roleGuard], data: { roles: ['CANDIDAT'] } }
         ]
     },
     { path: 'notfound', component: Notfound },
