@@ -2,6 +2,28 @@
 
 Plateforme de gestion des offres et candidatures de stage destinée aux candidats et au service RH du RIF.
 
+---
+
+## 🎥 RIF RH Stage Platform Demo
+
+<p align="center">
+  <a href="https://drive.google.com/file/d/1FC00i9KmpARrAfmS8ae4NKyxXq42VWl7/view?usp=sharing">
+    <img
+      src="https://drive.google.com/thumbnail?id=1FC00i9KmpARrAfmS8ae4NKyxXq42VWl7&sz=w1200"
+      alt="RIF RH Stage Platform Demo"
+      width="900"
+    />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://drive.google.com/file/d/1FC00i9KmpARrAfmS8ae4NKyxXq42VWl7/view?usp=sharing">
+    ▶️ <strong>Watch the complete RIF RH Stage Platform demonstration</strong>
+  </a>
+</p>
+
+---
+
 ## Technologies
 
 - Angular 21, PrimeNG et Chart.js ;
